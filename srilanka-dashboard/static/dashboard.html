@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Sri Lanka DASHBOARD &mdash; OSINT Snapshot</title>
+<style>:root{
+  --bg:#080b11; --bg2:#0a0f18;
+  --panel:#0f1826; --panel2:#0c1420;
+  --border:#1c2942; --border-soft:#161f30;
+  --text:#e7ecf5; --text-dim:#8b9bb4; --text-faint:#54607a;
+  --gold:#c9a35c; --gold-soft:#8a774a;
+  --amber:#ff9a4d; --red:#ef5354; --cyan-h:#58c4ff;
+  --violet:#a98bff; --green:#5fc48d; --magenta:#ff5fa2;
+  --mono: ui-monospace, "SF Mono", "Cascadia Code", "Roboto Mono", Consolas, "Liberation Mono", monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  --radius:10px;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:var(--sans);
+  -webkit-font-smoothing:antialiased;}
+body{background:
+  radial-gradient(1200px 600px at 85% -10%, rgba(88,196,255,0.05), transparent 60%),
+  radial-gradient(1000px 500px at -10% 20%, rgba(201,163,92,0.05), transparent 55%),
+  var(--bg);
+  min-height:100vh;
+}
+a{color:inherit;}
+::selection{background:rgba(201,163,92,0.35);}
+.wrap{max-width:1500px;margin:0 auto;padding:16px 16px 40px;}
+
+.hdr{display:flex;align-items:center;gap:14px;padding:10px 6px 18px;flex-wrap:wrap;}
+.brand{display:flex;align-items:center;gap:12px;}
+.brand svg{display:block;}
+.brand-text{display:flex;flex-direction:column;line-height:1.15;}
+.brand-title{font-size:19px;font-weight:800;letter-spacing:0.09em;text-transform:uppercase;color:var(--text);}
+.brand-sub{font-size:11px;letter-spacing:0.08em;color:var(--text-faint);text-transform:uppercase;margin-top:3px;}
+.search-wrap{flex:1;min-width:180px;max-width:400px;position:relative;}
+.search-wrap input{width:100%;background:var(--panel2);border:1px solid var(--border);border-radius:999px;
+  padding:10px 16px 10px 38px;color:var(--text);font-size:13px;font-family:var(--sans);outline:none;}
+.search-wrap input::placeholder{color:var(--text-faint);}
+.search-wrap input:focus{border-color:var(--gold-soft);box-shadow:0 0 0 3px rgba(201,163,92,0.12);}
+.search-wrap svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);opacity:0.55;}
+.hdr-right{display:flex;align-items:center;gap:12px;margin-left:auto;flex-wrap:wrap;}
+.hdr-clock{font-family:var(--mono);font-size:12px;color:var(--text-dim);text-align:right;line-height:1.3;white-space:nowrap;}
+.hdr-clock b{color:var(--text);display:block;font-size:13px;}
+
+.window-toggle{display:flex;background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:2px;}
+.wt-btn{background:none;border:none;color:var(--text-faint);font-size:11px;font-weight:700;padding:6px 12px;
+  border-radius:6px;cursor:pointer;letter-spacing:.02em;}
+.wt-btn.active{background:var(--gold);color:#1a1408;}
+.wt-btn:not(.active):hover{color:var(--text);}
+
+.kpi-row{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:16px;}
+.kpi{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--border);
+  border-radius:var(--radius);padding:14px 16px;position:relative;overflow:hidden;}
+.kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent,var(--gold));}
+.kpi .eyebrow{font-size:10px;letter-spacing:0.09em;text-transform:uppercase;color:var(--text-faint);font-weight:700;}
+.kpi .num{font-family:var(--mono);font-size:30px;font-weight:700;color:var(--text);margin-top:6px;letter-spacing:-0.01em;}
+.kpi .num span{font-size:15px;color:var(--text-dim);font-weight:500;}
+.kpi .sub{font-size:11px;color:var(--text-dim);margin-top:4px;}
+
+.main-grid{display:block;}
+.left-col{display:flex;flex-direction:column;gap:14px;min-width:0;}
+.panel-row{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);
+  padding:16px;display:flex;flex-direction:column;min-width:0;}
+.panel-hd{display:flex;align-items:center;gap:9px;margin-bottom:12px;flex-wrap:wrap;}
+.panel-dot{width:9px;height:9px;border-radius:50%;flex:none;box-shadow:0 0 8px 1px currentColor;}
+.panel-title{font-size:12px;font-weight:800;letter-spacing:0.07em;text-transform:uppercase;color:var(--text);}
+.panel-count{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--text-faint);
+  background:var(--panel2);border:1px solid var(--border-soft);border-radius:5px;padding:1px 7px;}
+.panel-items{display:flex;flex-direction:column;gap:11px;overflow-y:auto;max-height:420px;}
+.item{border-left:2px solid var(--border-soft);padding-left:10px;}
+.item .lbl{font-size:12.5px;font-weight:700;color:var(--text);margin-bottom:2px;}
+.item .txt{font-size:12px;line-height:1.5;color:var(--text-dim);}
+.item .meta{font-family:var(--mono);font-size:10px;color:var(--text-faint);margin-top:4px;}
+.item a{color:var(--gold-soft);text-decoration:none;}
+
+.map-panel{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);
+  padding:16px;position:relative;}
+.map-panel .panel-hd{margin-bottom:8px;}
+.map-svg-wrap{position:relative;width:100%;border-radius:8px;overflow:hidden;background:#060a10;
+  border:1px solid var(--border-soft);}
+.map-svg-wrap svg{display:block;width:100%;height:auto;}
+.map-legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:10px;font-size:10.5px;color:var(--text-dim);}
+.map-legend span{display:inline-flex;align-items:center;gap:5px;}
+.map-legend i{width:8px;height:8px;border-radius:50%;display:inline-block;}
+.map-tip{position:absolute;pointer-events:none;background:#0b1120;border:1px solid var(--gold-soft);
+  border-radius:8px;padding:9px 11px;font-size:11.5px;line-height:1.45;max-width:260px;color:var(--text);
+  box-shadow:0 8px 24px rgba(0,0,0,0.5);opacity:0;transform:translateY(4px);transition:opacity .12s,transform .12s;
+  z-index:40;}
+.map-tip.show{opacity:1;transform:translateY(0);}
+.map-tip .t-name{font-weight:800;font-size:12px;margin-bottom:3px;}
+.map-tip .t-meta{font-family:var(--mono);font-size:10px;color:var(--text-faint);margin-top:5px;}
+.marker circle.pulse{animation:pulse 2.4s ease-out infinite;}
+.marker circle.core{filter:drop-shadow(0 0 3px currentColor);}
+.marker{cursor:pointer;}
+@keyframes pulse{0%{r:5;opacity:0.55;}70%{r:15;opacity:0;}100%{r:15;opacity:0;}}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0.35;}}
+
+.status-pill{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10.5px;
+  font-weight:700;letter-spacing:.04em;padding:4px 10px;border-radius:999px;border:1px solid var(--border);
+  text-transform:uppercase;white-space:nowrap;}
+.status-pill.live{color:var(--green);border-color:rgba(95,196,143,.35);background:rgba(95,196,143,.08);}
+.status-pill.offline{color:var(--amber);border-color:rgba(255,154,77,.35);background:rgba(255,154,77,.08);}
+.status-pill .dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
+.status-pill.live .dot{animation:blink 1.6s ease-in-out infinite;}
+.refresh-btn{background:var(--panel2);border:1px solid var(--border);color:var(--text-dim);
+  border-radius:8px;padding:7px 12px;font-size:11px;font-family:var(--sans);cursor:pointer;
+  display:inline-flex;align-items:center;gap:6px;}
+.refresh-btn:hover{border-color:var(--gold-soft);color:var(--text);}
+.refresh-btn:disabled{opacity:.5;cursor:default;}
+.refresh-btn.spinning svg{animation:spin 0.8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.icon-btn{background:var(--panel2);border:1px solid var(--border);color:var(--text-dim);
+  border-radius:8px;width:34px;height:34px;display:inline-flex;align-items:center;justify-content:center;
+  cursor:pointer;flex:none;}
+.icon-btn:hover{border-color:var(--gold-soft);color:var(--text);}
+
+.offline-banner{display:none;background:rgba(255,154,77,.10);border:1px solid rgba(255,154,77,.35);
+  color:#ffbf8a;border-radius:8px;padding:10px 14px;font-size:12px;margin-bottom:14px;line-height:1.5;}
+.offline-banner.show{display:block;}
+.offline-banner b{color:#fff;}
+.connector-strip{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+.conn-badge{font-family:var(--mono);font-size:9.5px;padding:3px 8px;border-radius:5px;border:1px solid var(--border-soft);
+  color:var(--text-faint);}
+.conn-badge.ok{color:var(--green);border-color:rgba(95,196,143,.3);}
+.conn-badge.err{color:var(--red);border-color:rgba(239,83,84,.3);}
+.conn-badge.off{color:var(--text-faint);}
+.empty-note{font-size:11.5px;color:var(--text-faint);font-style:italic;padding:6px 0;}
+.infra-note{font-size:9.5px;color:var(--text-faint);margin-top:8px;padding-top:8px;
+  border-top:1px solid var(--border-soft);line-height:1.5;}
+
+.modal-backdrop{position:fixed;inset:0;background:rgba(4,6,10,.7);display:none;align-items:center;
+  justify-content:center;z-index:100;padding:20px;}
+.modal-backdrop.show{display:flex;}
+.modal{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:22px;
+  max-width:460px;width:100%;max-height:85vh;overflow-y:auto;}
+.modal h3{margin:0 0 4px;font-size:15px;color:var(--text);}
+.modal .modal-sub{font-size:11.5px;color:var(--text-faint);margin-bottom:16px;line-height:1.5;}
+.modal label{display:block;font-size:11px;font-weight:700;color:var(--text-dim);margin:10px 0 4px;}
+.modal input{width:100%;background:var(--panel2);border:1px solid var(--border);border-radius:7px;
+  padding:9px 11px;color:var(--text);font-size:12px;font-family:var(--mono);outline:none;}
+.modal input:focus{border-color:var(--gold-soft);}
+.key-field{margin-bottom:16px;}
+.key-field label{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:var(--text);margin:0 0 4px;}
+.key-field .kf-status{width:6px;height:6px;border-radius:50%;background:var(--text-faint);}
+.key-field .kf-status.on{background:var(--green);box-shadow:0 0 6px 1px var(--green);}
+.key-field .kf-help{font-size:10.5px;color:var(--text-faint);margin-bottom:6px;}
+.modal-actions{display:flex;gap:10px;margin-top:18px;align-items:center;}
+.btn-primary{background:var(--gold);color:#1a1408;border:none;border-radius:8px;padding:10px 18px;
+  font-size:12px;font-weight:700;cursor:pointer;}
+.btn-primary:hover{opacity:.9;}
+.btn-secondary{background:transparent;border:1px solid var(--border);color:var(--text-dim);
+  border-radius:8px;padding:10px 18px;font-size:12px;cursor:pointer;}
+.modal-msg{font-size:11.5px;margin-top:12px;min-height:16px;}
+.modal-msg.ok{color:var(--green);}
+.modal-msg.err{color:var(--red);}
+.custom-marker-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:11px;
+  border-bottom:1px solid var(--border-soft);gap:8px;}
+.custom-marker-row button{background:none;border:none;color:var(--text-faint);cursor:pointer;font-size:15px;flex:none;}
+.custom-marker-row button:hover{color:var(--red);}
+
+.skel{background:linear-gradient(90deg,var(--panel2) 25%,#131f30 37%,var(--panel2) 63%);
+  background-size:400% 100%;animation:skel 1.4s ease infinite;border-radius:4px;}
+@keyframes skel{0%{background-position:100% 50%;}100%{background-position:0 50%;}}
+.marker-tt-link{display:block;color:var(--gold);font-size:10px;margin-top:3px;text-decoration:none;}
+.map-body{display:grid;grid-template-columns:1fr 190px;gap:12px;align-items:start;}
+.layers-panel{background:#070a10;border:1px solid var(--border-soft);border-radius:8px;padding:10px;
+  display:flex;flex-direction:column;gap:2px;max-height:520px;overflow-y:auto;}
+.layers-hd{font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--text-faint);
+  font-weight:700;margin-bottom:6px;}
+.layer-toggle{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text-dim);
+  padding:6px 4px;border-radius:5px;cursor:pointer;user-select:none;}
+.layer-toggle:hover{background:var(--panel2);color:var(--text);}
+.layer-toggle input{accent-color:var(--gold);width:13px;height:13px;flex:none;}
+.layer-toggle i{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none;}
+@media (max-width:900px){.map-body{grid-template-columns:1fr;}}
+
+.dash-footer{margin-top:18px;padding:16px 4px 4px;border-top:1px solid var(--border-soft);
+  display:flex;flex-wrap:wrap;gap:8px 18px;justify-content:space-between;align-items:baseline;
+  font-size:11px;color:var(--text-faint);}
+.dash-footer b{color:var(--text-dim);}
+.dash-footer .brandline{color:var(--gold-soft);font-weight:700;letter-spacing:0.03em;}
+
+.methodology{font-size:11.5px;color:var(--text-dim);line-height:1.6;}
+.methodology li{margin-bottom:6px;}
+.dim{opacity:0.28 !important;transition:opacity .2s;}
+
+@media (max-width:1180px){
+  .panel-row{grid-template-columns:repeat(2,1fr);}
+  .kpi-row{grid-template-columns:repeat(3,1fr);}
+}
+@media (max-width:700px){
+  .panel-row{grid-template-columns:1fr;}
+  .kpi-row{grid-template-columns:repeat(2,1fr);}
+  .hdr-clock{display:none;}
+}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px;}
+@media (prefers-reduced-motion: reduce){
+  .live-dot,.marker circle.pulse{animation:none !important;}
+}
+
+/* ---------- live/offline status + refresh (new) ---------- */
+.status-pill{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10.5px;
+  font-weight:700;letter-spacing:.04em;padding:4px 10px;border-radius:999px;border:1px solid var(--border);
+  text-transform:uppercase;white-space:nowrap;}
+.status-pill.live{color:var(--green);border-color:rgba(95,196,143,.35);background:rgba(95,196,143,.08);}
+.status-pill.offline{color:var(--amber);border-color:rgba(255,154,77,.35);background:rgba(255,154,77,.08);}
+.status-pill .dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
+.status-pill.live .dot{animation:blink 1.6s ease-in-out infinite;}
+.refresh-btn{background:var(--panel2);border:1px solid var(--border);color:var(--text-dim);
+  border-radius:8px;padding:7px 12px;font-size:11px;font-family:var(--sans);cursor:pointer;
+  display:inline-flex;align-items:center;gap:6px;transition:border-color .15s,color .15s;}
+.refresh-btn:hover{border-color:var(--gold-soft);color:var(--text);}
+.refresh-btn:disabled{opacity:.5;cursor:default;}
+.refresh-btn svg{transition:transform .5s;}
+.refresh-btn.spinning svg{animation:spin 0.8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.offline-banner{display:none;background:rgba(255,154,77,.10);border:1px solid rgba(255,154,77,.35);
+  color:#ffbf8a;border-radius:8px;padding:10px 14px;font-size:12px;margin-bottom:14px;line-height:1.5;}
+.offline-banner.show{display:block;}
+.offline-banner b{color:#fff;}
+.connector-strip{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+.conn-badge{font-family:var(--mono);font-size:9.5px;padding:3px 8px;border-radius:5px;border:1px solid var(--border-soft);
+  color:var(--text-faint);}
+.conn-badge.ok{color:var(--green);border-color:rgba(95,196,143,.3);}
+.conn-badge.err{color:var(--red);border-color:rgba(239,83,84,.3);}
+.conn-badge.off{color:var(--text-faint);}
+.empty-note{font-size:11.5px;color:var(--text-faint);font-style:italic;padding:6px 0;}
+.infra-note{font-size:9.5px;color:var(--text-faint);margin-top:8px;padding-top:8px;
+  border-top:1px solid var(--border-soft);line-height:1.5;}
+
+/* ---------- settings modal (new) ---------- */
+.icon-btn{background:var(--panel2);border:1px solid var(--border);color:var(--text-dim);
+  border-radius:8px;width:34px;height:34px;display:inline-flex;align-items:center;justify-content:center;
+  cursor:pointer;flex:none;transition:border-color .15s,color .15s;}
+.icon-btn:hover{border-color:var(--gold-soft);color:var(--text);}
+.modal-backdrop{position:fixed;inset:0;background:rgba(4,6,10,.7);display:none;align-items:center;
+  justify-content:center;z-index:100;padding:20px;}
+.modal-backdrop.show{display:flex;}
+.modal{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:22px;
+  max-width:480px;width:100%;max-height:85vh;overflow-y:auto;}
+.modal h3{margin:0 0 4px;font-size:15px;color:var(--text);}
+.modal .modal-sub{font-size:11.5px;color:var(--text-faint);margin-bottom:18px;line-height:1.5;}
+.key-field{margin-bottom:16px;}
+.key-field label{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:var(--text);margin-bottom:4px;}
+.key-field .kf-status{width:6px;height:6px;border-radius:50%;background:var(--text-faint);}
+.key-field .kf-status.on{background:var(--green);box-shadow:0 0 6px 1px var(--green);}
+.key-field .kf-help{font-size:10.5px;color:var(--text-faint);margin-bottom:6px;}
+.key-field input{width:100%;background:var(--panel2);border:1px solid var(--border);border-radius:7px;
+  padding:9px 11px;color:var(--text);font-size:12px;font-family:var(--mono);outline:none;}
+.key-field input:focus{border-color:var(--gold-soft);}
+.modal-actions{display:flex;gap:10px;margin-top:20px;align-items:center;}
+.btn-primary{background:var(--gold);color:#1a1408;border:none;border-radius:8px;padding:10px 18px;
+  font-size:12px;font-weight:700;cursor:pointer;}
+.btn-primary:hover{opacity:.9;}
+.btn-secondary{background:transparent;border:1px solid var(--border);color:var(--text-dim);
+  border-radius:8px;padding:10px 18px;font-size:12px;cursor:pointer;}
+.modal-msg{font-size:11.5px;margin-top:12px;min-height:16px;}
+.modal-msg.ok{color:var(--green);}
+.modal-msg.err{color:var(--red);}
+.skel{background:linear-gradient(90deg,var(--panel2) 25%,#131f30 37%,var(--panel2) 63%);
+  background-size:400% 100%;animation:skel 1.4s ease infinite;border-radius:4px;}
+@keyframes skel{0%{background-position:100% 50%;}100%{background-position:0 50%;}}
+.marker-tt-link{display:block;color:var(--gold);font-size:10px;margin-top:3px;text-decoration:none;}
+
+/* ---------- map body: map + layer toggles side by side (new) ---------- */
+.map-body{display:grid;grid-template-columns:1fr 190px;gap:12px;align-items:start;}
+.layers-panel{background:#070a10;border:1px solid var(--border-soft);border-radius:8px;padding:10px;
+  display:flex;flex-direction:column;gap:2px;}
+.layers-hd{font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--text-faint);
+  font-weight:700;margin-bottom:6px;}
+.layer-toggle{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text-dim);
+  padding:6px 4px;border-radius:5px;cursor:pointer;user-select:none;}
+.layer-toggle:hover{background:var(--panel2);color:var(--text);}
+.layer-toggle input{accent-color:var(--gold);width:13px;height:13px;flex:none;}
+.layer-toggle i{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none;}
+@media (max-width:900px){.map-body{grid-template-columns:1fr;}}
+
+
+.main-grid{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:14px;align-items:stretch;}
+.ticker-panel{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);display:flex;flex-direction:column;min-height:0;overflow:hidden;}
+.ticker-hd{display:flex;align-items:center;gap:8px;padding:14px 16px 10px;flex:none;}
+.live-dot{width:8px;height:8px;border-radius:50%;background:var(--red);box-shadow:0 0 8px 1px var(--red);animation:blink 1.6s ease-in-out infinite;}
+.ticker-viewport{flex:1;min-height:600px;overflow:hidden;position:relative;padding:0 4px;
+  mask-image:linear-gradient(to bottom,transparent 0,black 24px,black calc(100% - 24px),transparent 100%);
+  -webkit-mask-image:linear-gradient(to bottom,transparent 0,black 24px,black calc(100% - 24px),transparent 100%);}
+.ticker-track{display:flex;flex-direction:column;animation:tickerScroll 110s linear infinite;}
+.ticker-track.paused{animation-play-state:paused;}
+@keyframes tickerScroll{from{transform:translateY(0);}to{transform:translateY(-50%);}}
+.tick-item{padding:10px 12px;border-bottom:1px solid var(--border-soft);}
+.tick-item .tag{display:inline-block;font-family:var(--mono);font-size:9px;font-weight:700;padding:1.5px 6px;border-radius:4px;margin-right:6px;color:#0a0e17;}
+.tick-item .txt{font-size:12px;line-height:1.45;color:var(--text);display:block;margin-top:5px;}
+.tick-item .meta{font-family:var(--mono);font-size:9.5px;color:var(--text-faint);margin-top:5px;}
+.ticker-ftr{flex:none;padding:9px 16px;border-top:1px solid var(--border-soft);font-size:10px;color:var(--text-faint);text-align:center;}
+.dw-select{margin-left:auto;background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:11px;}
+.dw-status{font-family:var(--mono);font-size:10px;color:var(--text-faint);margin:-4px 0 10px;}
+@media (max-width:1180px){.main-grid{grid-template-columns:1fr;}}
+@media (prefers-reduced-motion: reduce){.ticker-track,.live-dot{animation:none !important;}}
+.disputed-outline{fill:rgba(240,180,41,0.12);stroke:#f0b429;stroke-width:1.4;stroke-dasharray:4 3;}
+.state-line{fill:none;stroke:#8fb3d9;stroke-width:0.9;stroke-opacity:0.85;}
+.state-label{fill:#cfe3f5;font-size:11px;text-anchor:middle;paint-order:stroke;stroke:#0a0e17;stroke-width:3px;}
+.sea-label{fill:#7fb3d5;font-size:14px;font-style:italic;letter-spacing:.08em;text-anchor:middle;}
+.river-line{fill:none;stroke:#3f7fbf;stroke-width:1.3;stroke-opacity:0.85;}
+.place-dot{fill:#e8eef7;}
+.place-label{fill:#e8eef7;font-size:11px;paint-order:stroke;stroke:#0a0e17;stroke-width:3px;}
+.state-line.ne{fill:rgba(96,165,250,0.10);stroke:#7fb8ff;stroke-width:1.4;}
+.state-line.margin{stroke-dasharray:6 4;stroke:#64748b;fill:none;}
+.country.focus{fill:#1d3a5c;}
+
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hdr">
+  <div class="brand"><svg width="34" height="34" viewBox="0 0 34 34" fill="none">
+  <circle cx="17" cy="17" r="15.5" stroke="#c9a35c" stroke-width="1.3" opacity="0.55"/>
+  <circle cx="17" cy="17" r="10.5" stroke="#c9a35c" stroke-width="1.3" opacity="0.75"/>
+  <circle cx="17" cy="17" r="2.6" fill="#c9a35c"/>
+  <path d="M17 1.5V8.5M17 25.5V32.5M1.5 17H8.5M25.5 17H32.5" stroke="#c9a35c" stroke-width="1.3" opacity="0.85"/>
+</svg>
+    <div class="brand-text"><div class="brand-title">Sri Lanka DASHBOARD</div>
+      <div class="brand-sub"Sri Lanka &amp; the seas around it &middot; Open-Source Intelligence</div></div>
+  </div>
+  <div class="search-wrap"><svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+  <circle cx="11" cy="11" r="7" stroke="#8b9bb4" stroke-width="2"/>
+  <path d="M21 21l-4.3-4.3" stroke="#8b9bb4" stroke-width="2" stroke-linecap="round"/></svg>
+    <input id="filterInput" type="text" placeholder="Filter dashboard (e.g. Trincomalee, Hambantota, Katunayake)&hellip;" autocomplete="off"/>
+  </div>
+  <div class="hdr-right">
+    <div class="window-toggle" id="windowToggle">
+      <button class="wt-btn active" data-window="72h">Last 72h</button>
+      <button class="wt-btn" data-window="all">All Time</button>
+    </div>
+    <span class="status-pill offline" id="statusPill"><span class="dot"></span><span id="statusPillText">Checking&hellip;</span></span>
+    <button class="icon-btn" id="plotBtn" title="Plot a location on the map"><svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+  <path d="M12 2C8 2 5 5.5 5 9.5C5 14.5 12 22 12 22S19 14.5 19 9.5C19 5.5 16 2 12 2Z" stroke="currentColor" stroke-width="1.8"/>
+  <circle cx="12" cy="9.5" r="2.3" fill="currentColor"/>
+</svg></button>
+    <button class="icon-btn" id="settingsBtn" title="API Keys"><svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+  <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" stroke="currentColor" stroke-width="2"/>
+  <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" stroke-width="1.6"/>
+</svg></button>
+    <button class="refresh-btn" id="refreshBtn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+  <path d="M21 12a9 9 0 11-2.6-6.4M21 4v6h-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Refresh</span></button>
+    <div class="hdr-clock"><b id="snapClock">&mdash;</b><span id="snapDate">&nbsp;</span></div>
+  </div>
+</header>
+
+<div class="modal-backdrop" id="settingsBackdrop">
+  <div class="modal">
+    <h3>API Keys</h3>
+    <div class="modal-sub">Stored AES-256-GCM encrypted on this machine (data/secrets.enc), never sent anywhere
+      but this local server. GDELT, RSS, and USGS already work with zero keys - these three are optional,
+      for more sources.</div>
+    <div id="keyFields">Loading&hellip;</div>
+    <div class="modal-actions">
+      <button class="btn-primary" id="saveKeysBtn">Save &amp; reconnect</button>
+      <button class="btn-secondary" id="closeSettingsBtn">Close</button>
+    </div>
+    <div class="modal-msg" id="settingsMsg"></div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="plotBackdrop">
+  <div class="modal">
+    <h3>Plot a location</h3>
+    <div class="modal-sub">Adds a marker at the coordinates you enter, with your remark - saved locally in
+      data/custom_markers.json on this machine, never sent anywhere else.</div>
+    <label>Label</label><input type="text" id="plotLabel" placeholder="e.g. Reported incident site"/>
+    <label>Remark / comment (optional)</label><input type="text" id="plotRemark" placeholder="e.g. Source, context, notes"/>
+    <label>Latitude</label><input type="text" id="plotLat" placeholder="e.g. 30.5"/>
+    <label>Longitude</label><input type="text" id="plotLon" placeholder="e.g. 114.3"/>
+    <div class="modal-actions">
+      <button class="btn-primary" id="plotAddBtn">Add marker</button>
+      <button class="btn-secondary" id="plotCloseBtn">Close</button>
+    </div>
+    <div class="modal-msg" id="plotMsg"></div>
+    <div id="customMarkersList" style="margin-top:14px;max-height:200px;overflow-y:auto;"></div>
+  </div>
+</div>
+  <div class="kpi-row" id="kpiRow">
+  <div class="kpi" style="--accent:var(--gold)"><div class="eyebrow">Map markers</div><div class="num" id="kpi-markers"><span class="skel" style="display:inline-block;width:30px;height:24px;"></span></div><div class="sub">plotted on the tactical map</div></div>
+  <div class="kpi" style="--accent:var(--amber)"><div class="eyebrow">Military signals</div><div class="num" id="kpi-military">&hellip;</div><div class="sub">current items in feed</div></div>
+  <div class="kpi" style="--accent:var(--cyan-h)"><div class="eyebrow">Economic &amp; trade</div><div class="num" id="kpi-economic">&hellip;</div><div class="sub">current items in feed</div></div>
+  <div class="kpi" style="--accent:var(--green)"><div class="eyebrow">Diplomatic events</div><div class="num" id="kpi-political">&hellip;</div><div class="sub">current items in feed</div></div>
+  <div class="kpi" style="--accent:var(--violet)"><div class="eyebrow">Hazard alerts</div><div class="num" id="kpi-hazard">&hellip;</div><div class="sub">current items in feed</div></div>
+  <div class="kpi" style="--accent:var(--red)"><div class="eyebrow">Dark-web claims (region)</div><div class="num" id="kpi-darkweb">&hellip;</div><div class="sub">leak-site, Telegram and Tor sources</div></div>
+</div>
+  <div class="main-grid">
+    <div class="left-col">
+  <div class="map-panel">
+  <div class="panel-hd"><span class="panel-dot" style="background:var(--gold);color:var(--gold)"></span>
+    <span class="panel-title">Tactical Map &mdash; Sri Lanka and 150 km round the island</span>
+    <span class="panel-count" id="count-markers">&hellip;</span></div>
+  <div class="map-body">
+    <div class="map-svg-wrap" id="mapWrap"><svg viewBox="0 0 1300 1731" xmlns="http://www.w3.org/2000/svg" id="mapSvg" role="img" aria-label="Tactical map of Sri Lanka and the seas within 150 km">
+  <defs>
+    <linearGradient id="sweepGrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#c9a35c" stop-opacity="0.38"/><stop offset="100%" stop-color="#c9a35c" stop-opacity="0"/></linearGradient>
+    <radialGradient id="oceanGrad" cx="50%" cy="35%" r="75%">
+      <stop offset="0%" stop-color="#0b1420"/>
+      <stop offset="100%" stop-color="#05080d"/>
+    </radialGradient>
+  </defs>
+  <rect x="0" y="0" width="1300" height="1731" fill="url(#oceanGrad)"/>
+  <g class="countries"><path class="country" d="M417.5,18.6L416.6,58.0L415.2,65.0L413.7,72.7L415.2,108.9L415.8,123.0L415.8,165.1L418.2,175.6L419.1,220.1L417.3,242.2L415.9,245.0L411.6,245.9L406.6,247.5L401.6,248.3L397.4,246.7L397.8,241.3L392.0,238.0L360.5,232.9L357.5,234.1L355.7,237.8L359.8,237.6L363.9,237.8L367.8,238.5L371.4,239.6L373.5,240.7L376.1,242.5L378.4,243.2L385.3,243.2L392.4,245.0L396.2,247.2L395.8,250.3L392.6,251.2L347.0,241.3L342.8,241.0L341.1,240.6L340.1,239.5L339.8,236.8L341.1,236.1L343.2,236.2L345.5,235.9L353.1,232.8L353.9,231.0L348.8,229.0L343.9,231.0L334.0,230.3L334.9,232.5L334.9,234.2L329.6,235.9L316.4,238.0L310.7,237.7L304.3,234.7L300.8,233.7L297.6,234.9L292.1,239.6L277.1,248.2L272.3,252.2L268.7,256.9L268.2,259.8L268.3,263.3L267.9,266.3L266.1,267.6L262.6,268.6L260.5,271.0L259.5,274.4L259.8,278.2L261.5,295.5L263.9,303.4L270.3,308.2L260.5,314.6L250.2,325.0L235.2,345.4L229.9,355.9L225.4,361.1L224.7,362.1L223.0,368.2L218.8,373.4L208.8,382.4L194.0,403.0L193.7,405.2L193.8,407.6L193.0,410.5L191.9,412.2L189.1,414.4L187.8,415.8L185.4,419.6L183.0,424.5L181.3,430.2L179.6,442.6L176.5,452.7L177.0,458.2L181.6,467.6L188.2,475.8L208.6,494.0L217.4,497.9L227.8,500.2L262.5,501.0L268.1,498.9L274.1,494.8L279.9,492.1L285.3,494.0L286.4,496.4L285.6,498.4L284.1,500.6L283.3,503.7L283.9,506.5L285.1,508.2L286.3,509.5L286.8,511.0L288.4,513.4L292.0,516.8L309.9,530.1L313.8,534.6L310.4,536.6L306.2,534.6L290.3,520.5L272.9,510.9L257.5,508.9L253.6,506.4L249.5,506.6L245.2,505.3L240.5,504.6L231.3,509.2L223.5,508.9L220.5,509.8L213.8,507.0L204.9,504.6L195.5,503.4L187.4,504.2L185.4,505.3L180.2,509.6L177.6,510.2L175.7,510.0L174.0,509.6L171.7,509.6L162.9,510.8L158.5,512.1L151.2,516.0L141.5,518.3L137.5,520.8L135.1,523.1L132.2,525.1L128.9,526.5L115.8,527.3L111.9,529.1L110.3,533.1L108.8,535.7L105.1,537.4L101.1,538.5L67.2,542.3L58.0,544.4L48.3,548.7L39.5,554.4L18.1,571.8L18.8,459.8L19.6,347.8L20.4,235.9L21.2,123.9L22.1,12.0L120.7,12.6L219.4,13.1L318.0,13.5L416.6,13.8L417.5,18.6Z" />
+<path class="country focus" d="M933.1,1072.4L935.8,1081.5L936.2,1086.9L934.8,1097.1L923.1,1138.1L922.4,1142.4L922.2,1147.9L921.3,1152.6L917.6,1159.8L916.8,1163.0L915.4,1167.4L910.4,1175.2L908.1,1178.9L909.9,1185.2L907.1,1192.6L883.0,1230.9L874.9,1239.0L860.1,1249.6L855.2,1251.1L848.7,1254.6L801.1,1292.2L791.6,1297.4L760.7,1308.4L760.7,1308.4L760.3,1304.7L760.2,1304.5L758.4,1303.0L758.4,1303.0L757.9,1303.1L756.4,1303.5L755.4,1305.6L754.9,1310.0L753.5,1311.6L751.3,1312.2L748.3,1313.5L742.7,1316.9L737.1,1319.4L710.4,1325.1L697.5,1329.6L683.3,1332.2L676.8,1334.7L672.9,1340.2L666.0,1338.8L661.7,1340.5L659.3,1341.4L649.4,1348.7L639.5,1356.0L634.9,1361.3L624.4,1360.7L624.4,1360.7L620.0,1361.3L616.6,1362.6L613.1,1364.6L606.8,1369.3L605.0,1369.7L603.2,1370.1L599.0,1368.5L594.4,1366.1L591.9,1365.4L590.1,1364.8L575.2,1366.6L571.0,1365.7L568.8,1363.6L567.4,1360.8L566.3,1359.2L565.5,1357.9L561.2,1360.5L557.3,1360.8L550.4,1359.8L548.7,1359.5L547.5,1359.0L546.6,1357.7L545.6,1356.5L543.6,1356.0L542.4,1356.4L541.4,1357.2L540.4,1357.9L539.1,1357.9L538.6,1357.5L538.2,1357.2L536.6,1354.8L535.8,1354.4L535.6,1354.2L535.6,1354.2L533.8,1353.6L522.8,1349.6L518.3,1348.7L515.1,1348.0L509.5,1343.5L508.3,1342.9L505.8,1341.7L505.8,1341.7L503.9,1343.6L499.1,1339.7L478.2,1317.5L476.5,1316.2L476.5,1316.2L476.3,1315.9L475.7,1315.2L475.4,1314.1L475.5,1311.9L474.9,1310.8L474.0,1309.7L471.7,1306.6L459.9,1281.6L459.4,1279.2L459.4,1279.1L459.4,1277.0L459.5,1274.9L459.5,1274.8L459.1,1273.5L456.9,1269.1L454.8,1257.0L450.1,1248.6L447.1,1236.5L446.1,1232.0L445.5,1231.6L444.4,1230.9L443.3,1229.9L442.6,1228.5L442.9,1227.0L444.1,1226.6L445.4,1226.8L445.4,1226.8L446.1,1226.7L444.1,1213.2L444.0,1212.1L438.6,1198.4L416.8,1141.9L413.3,1122.4L413.0,1120.5L413.0,1101.9L413.3,1101.2L415.9,1095.1L416.6,1092.1L416.5,1089.1L416.5,1089.1L404.3,1045.5L406.0,1039.1L406.0,1043.0L406.9,1045.5L408.3,1047.4L409.5,1049.7L411.9,1058.3L413.1,1060.4L414.7,1060.4L415.1,1057.9L415.8,1056.9L416.5,1056.7L416.5,1056.7L416.6,1056.9L416.6,1049.0L416.6,1048.9L416.0,1045.5L414.8,1042.6L413.5,1041.8L410.2,1041.0L408.7,1040.0L408.5,1039.7L407.6,1037.8L408.0,1035.8L409.0,1033.9L409.5,1032.0L397.1,939.9L395.6,936.5L396.7,935.4L397.4,935.3L399.3,936.5L399.7,932.1L401.0,926.9L401.3,924.4L401.6,921.9L400.2,918.0L398.3,914.5L397.9,912.1L397.5,909.7L397.6,900.2L391.8,871.3L391.1,867.9L388.1,861.6L385.5,848.2L381.3,837.7L375.0,808.6L375.0,800.3L376.1,800.8L376.1,800.8L376.2,800.9L376.2,801.2L376.8,802.1L377.7,797.3L376.4,782.0L375.1,777.4L379.3,774.6L383.3,769.5L386.2,763.7L387.3,758.8L388.5,755.5L396.1,743.6L396.0,743.8L392.1,752.8L387.3,761.4L388.4,763.5L388.6,764.0L390.5,765.9L393.0,766.9L396.0,766.9L393.5,773.9L390.9,779.0L389.8,779.9L388.6,780.0L387.7,780.8L387.2,783.5L387.5,789.6L387.2,791.5L382.9,805.3L383.0,807.9L383.3,813.0L387.8,818.4L389.1,819.9L383.9,830.6L392.1,836.5L403.9,837.5L410.0,833.2L408.8,828.6L406.9,825.0L406.2,823.6L405.2,822.5L403.0,819.6L400.4,818.0L399.7,815.2L408.3,798.8L408.0,795.8L406.9,793.6L405.6,791.7L404.9,789.8L404.7,786.7L405.0,781.3L404.9,779.1L404.9,779.1L404.7,778.6L404.1,776.8L403.6,776.4L403.1,776.0L402.7,774.9L403.2,772.0L404.4,769.6L407.7,765.2L408.4,762.3L409.0,756.9L411.4,746.1L413.9,720.9L415.4,718.1L417.1,716.7L418.4,714.9L419.0,711.2L419.0,700.4L420.5,695.2L424.0,691.8L428.1,689.0L431.4,685.4L431.8,684.1L434.4,676.2L434.7,675.9L434.9,675.7L435.5,673.4L437.9,668.3L440.2,643.1L434.1,627.1L434.6,624.3L435.1,606.0L435.1,605.8L434.5,599.7L433.7,596.7L432.4,594.4L431.4,591.8L433.7,590.6L437.2,589.9L439.4,589.2L454.2,575.9L462.0,572.1L465.2,569.3L466.9,563.0L470.0,556.5L471.7,547.5L480.0,526.3L480.2,525.1L481.0,522.0L482.6,515.7L482.6,500.7L483.2,498.5L482.7,497.0L479.7,496.5L472.7,492.8L470.0,490.2L468.3,485.4L468.0,484.5L466.8,478.4L466.6,475.0L469.7,471.8L475.3,469.0L481.6,467.0L486.7,466.2L489.0,465.0L494.6,457.6L495.3,457.1L496.3,456.3L498.1,455.2L500.4,454.4L503.3,453.9L500.9,449.4L499.5,447.4L498.0,445.5L494.3,441.7L489.3,438.0L470.5,426.9L466.7,422.1L474.9,422.4L482.7,425.5L498.0,434.5L512.6,438.2L516.5,440.7L522.5,446.0L524.0,448.8L520.9,450.4L521.6,452.2L522.5,453.9L520.9,455.7L520.9,455.7L526.2,459.3L538.8,456.2L561.8,447.1L568.0,447.7L581.6,451.4L597.6,458.7L609.7,461.0L609.7,461.0L592.4,449.1L586.4,446.3L581.1,445.2L580.3,444.8L579.6,444.4L575.0,440.9L573.2,439.9L571.5,439.6L569.4,439.7L566.2,439.9L564.3,440.7L564.0,441.1L563.4,442.0L562.4,442.5L559.0,440.0L557.7,439.8L549.4,440.0L547.1,439.3L529.0,423.5L521.2,418.5L521.2,418.5L518.4,417.2L505.3,411.5L500.6,408.7L497.5,408.7L498.0,415.0L499.8,416.8L502.5,418.9L504.1,421.5L502.5,424.8L500.6,425.3L498.7,424.3L497.0,422.9L492.2,420.3L482.7,412.0L477.2,409.6L477.2,409.7L480.0,412.7L485.0,417.1L487.8,420.2L481.6,419.0L475.5,416.5L463.3,409.6L453.5,401.9L447.8,399.8L447.2,399.5L445.0,398.0L442.9,397.2L442.6,399.0L439.8,397.1L438.8,394.6L438.3,391.6L437.3,388.3L435.6,385.4L434.6,384.1L432.0,380.7L430.4,377.7L435.9,374.9L445.9,365.6L450.4,363.6L450.5,363.6L470.3,365.4L480.7,364.3L484.5,364.7L486.0,368.2L485.7,373.6L486.5,375.5L488.6,376.2L490.7,376.5L496.8,378.1L498.1,378.8L499.2,381.0L502.0,380.9L504.1,380.3L505.0,380.0L506.2,379.9L507.1,379.7L507.1,379.7L509.1,380.9L509.9,381.4L517.0,389.2L539.4,413.8L547.3,418.8L565.7,427.3L566.3,427.5L566.3,425.6L557.0,420.9L534.7,402.5L516.4,381.2L507.1,376.2L492.5,372.7L488.6,369.9L488.2,366.0L493.5,363.7L495.2,363.4L500.5,362.5L511.1,362.0L516.1,363.0L519.7,365.5L522.0,373.9L524.3,377.4L557.6,416.8L562.5,420.4L572.4,426.1L642.7,483.4L643.0,483.8L644.8,486.8L647.6,490.4L653.1,495.6L656.6,500.1L653.5,501.7L653.5,501.7L651.7,501.0L651.5,500.9L651.5,500.8L648.8,497.4L647.3,496.6L647.3,496.6L642.7,495.8L640.7,496.5L641.7,498.5L642.0,499.2L655.2,511.5L660.4,514.4L660.4,514.4L658.4,511.2L657.1,508.3L657.8,506.1L661.3,505.3L663.0,506.4L665.7,514.4L668.1,519.3L677.8,538.7L675.9,538.0L670.5,536.0L667.1,535.9L665.7,539.6L667.6,540.5L671.8,541.2L675.5,543.6L675.5,543.9L676.1,549.5L676.1,549.5L677.8,549.5L678.7,548.0L679.4,547.3L680.3,546.9L681.5,546.1L681.5,546.1L682.8,551.2L682.9,551.9L686.5,560.2L691.4,567.6L696.3,570.8L696.7,571.1L697.2,571.6L697.2,573.4L696.0,575.2L693.7,576.0L693.0,575.3L690.2,570.8L687.1,569.2L680.1,567.4L676.1,565.5L677.9,568.1L679.0,569.5L688.2,578.2L688.3,583.1L691.3,585.2L691.3,585.3L688.6,587.8L686.2,590.7L686.2,590.7L690.2,593.8L694.5,593.5L698.0,590.2L700.6,585.6L702.3,581.3L702.4,581.4L711.6,592.5L719.8,606.6L723.1,610.1L727.8,611.4L731.5,614.5L737.0,627.8L738.4,629.2L739.9,630.8L739.9,630.8L746.2,633.7L749.3,640.4L752.9,653.9L753.6,651.4L754.4,650.4L755.8,650.7L755.8,650.7L758.3,652.1L757.6,654.6L764.7,662.3L767.0,666.2L767.0,670.8L765.2,672.7L762.5,673.9L760.1,676.8L760.1,676.7L762.0,676.3L763.9,675.8L764.3,675.5L765.3,675.0L765.3,675.0L770.9,687.1L771.7,693.4L765.3,694.4L765.3,694.4L766.6,690.2L764.9,686.9L762.1,686.4L760.1,690.9L760.8,694.3L762.6,696.8L763.6,699.4L761.7,703.4L760.2,702.2L757.4,700.0L753.0,697.3L748.5,696.3L744.3,698.1L741.0,702.5L742.1,704.9L746.1,704.3L751.4,699.9L755.0,703.7L758.4,708.4L762.3,712.3L768.0,713.9L779.7,713.7L783.7,711.1L781.0,705.1L787.7,702.0L790.4,701.2L793.2,701.4L793.2,701.4L796.3,703.2L799.2,706.2L801.3,709.7L803.1,720.1L807.1,733.4L807.3,736.8L807.4,740.3L804.1,738.0L800.7,731.2L797.8,729.7L797.7,731.6L798.9,740.0L799.0,740.6L800.4,743.8L802.1,744.6L803.7,745.4L803.7,745.4L807.2,745.4L809.9,746.6L811.6,756.5L813.5,763.3L813.9,764.5L814.4,768.6L814.4,768.7L815.2,771.3L820.5,789.4L822.6,801.1L818.0,807.5L818.0,807.6L815.4,796.9L815.0,795.4L811.1,784.7L809.2,784.7L808.9,792.8L809.2,795.4L809.0,795.3L808.8,796.1L808.8,796.1L808.9,797.4L809.2,798.9L810.1,799.9L812.2,800.6L812.3,800.6L812.7,801.4L814.8,806.8L819.3,810.1L819.3,810.1L823.6,809.7L825.1,804.2L826.6,804.2L828.3,807.2L828.7,808.0L830.8,817.3L833.0,820.8L835.8,824.0L837.7,827.0L840.8,834.3L842.1,833.0L843.7,831.8L844.5,830.6L845.6,833.0L844.5,834.3L845.0,835.2L845.5,835.8L845.6,836.0L845.9,836.5L846.1,837.6L846.1,837.6L847.4,836.6L850.0,835.3L851.3,834.3L851.3,834.3L851.9,835.7L852.7,837.5L852.1,839.6L851.2,841.7L851.3,843.3L851.3,844.8L853.1,848.3L856.3,850.7L858.4,852.3L860.2,855.4L859.1,855.5L858.5,855.9L857.7,856.4L857.2,856.7L856.7,857.0L856.0,859.8L855.2,862.6L858.3,871.4L859.9,873.3L863.5,877.5L863.6,877.5L869.0,876.5L870.7,876.5L872.5,881.9L874.6,885.2L875.2,886.3L886.2,897.8L889.8,903.4L890.4,908.4L884.8,910.1L884.8,910.1L882.1,908.4L875.8,900.4L872.5,897.5L868.3,896.0L868.2,896.0L867.8,896.0L864.8,896.3L862.1,899.0L860.3,904.7L863.4,906.1L866.4,906.5L868.9,905.6L870.8,902.9L873.8,904.1L876.6,905.5L877.6,906.6L878.2,907.4L877.8,910.1L881.2,913.3L884.6,916.5L887.3,919.6L890.1,924.2L890.1,924.2L888.7,925.8L888.4,927.2L888.9,929.0L890.1,931.4L891.7,929.5L890.7,926.0L890.7,926.0L893.7,927.0L899.7,931.4L901.1,933.5L905.8,945.5L905.5,946.0L904.1,952.5L904.3,953.3L904.3,953.4L905.6,955.9L905.8,956.9L904.9,958.6L903.0,960.1L901.9,961.6L903.2,963.9L904.5,965.6L904.9,966.9L905.0,967.0L905.8,968.5L907.6,970.2L904.9,972.2L905.1,973.1L905.4,974.1L907.5,974.6L909.5,971.9L911.1,971.9L911.1,971.9L913.1,982.3L913.0,986.2L913.1,986.2L914.8,986.2L914.8,986.1L915.0,982.4L915.6,978.9L916.7,975.8L918.3,973.7L918.3,971.9L918.1,971.5L917.6,969.9L918.0,969.1L919.5,969.7L921.8,971.9L922.5,973.9L923.1,979.4L927.1,985.6L933.5,1007.6L932.5,1068.3L933.1,1072.4ZM896.6,918.9L895.6,916.8L894.3,914.2L893.5,911.7L893.6,909.0L894.4,906.7L894.7,904.2L893.5,901.2L893.5,901.1L896.8,904.3L899.9,911.8L902.3,915.2L902.8,916.7L905.2,923.1L911.5,933.0L914.3,937.6L918.7,960.1L918.7,960.1L918.6,965.2L914.8,968.4L911.2,965.5L910.1,964.4L909.6,963.8L909.4,962.6L909.2,961.3L909.2,960.8L910.3,944.5L909.5,938.9L906.7,936.5L905.6,934.2L897.0,921.6L896.6,918.9ZM422.8,413.7L418.9,407.8L412.8,395.4L415.6,391.0L416.3,385.3L417.9,380.8L423.4,379.6L426.4,380.5L426.4,380.5L426.6,382.7L425.6,385.7L424.9,389.2L425.0,392.7L425.4,395.6L425.4,395.7L425.6,396.3L426.5,398.4L427.7,399.7L428.6,400.7L429.7,401.0L434.6,400.8L435.4,401.5L435.8,405.4L436.4,407.0L439.3,408.8L443.2,410.5L446.5,412.4L446.8,413.0L447.6,414.9L445.9,416.7L442.5,416.7L438.9,415.6L436.4,414.0L434.6,413.5L430.0,416.2L426.8,416.6L426.8,416.6L422.8,413.7ZM377.3,555.2L376.0,552.7L376.8,550.2L380.1,549.1L391.5,549.1L396.6,550.5L401.8,551.8L412.6,556.0L423.0,562.1L431.7,570.6L431.6,570.5L427.5,569.7L420.1,566.0L415.8,565.2L422.4,572.8L427.6,578.8L429.9,582.9L423.8,582.1L419.8,579.0L417.1,575.6L415.0,574.0L412.4,572.7L401.9,563.3L396.7,560.9L391.5,558.6L387.7,557.5L385.7,557.0L380.1,556.3L377.3,555.2ZM382.6,448.7L380.6,450.7L374.1,451.0L368.2,449.0L365.6,445.8L365.6,435.2L366.4,432.5L368.0,432.8L369.8,435.0L370.8,437.7L375.2,439.1L380.4,439.6L381.7,440.5L384.7,446.8L382.6,448.7Z" /></g>
+  <g class="disputed-overlay"></g>
+  <g class="disputed-overlay"></g>
+  <g class="rivers-layer"><path class="river-line" d="M744.4,834.4L743.1,838.9L740.5,845.8L735.0,852.6L729.7,860.7L728.0,865.6L724.9,869.2L720.6,872.0L715.3,874.5L710.4,879.7L706.0,885.5M620.1,1012.9L622.4,1015.6L627.2,1019.9L631.6,1021.9L636.5,1023.1L641.5,1024.9L645.3,1025.5L648.3,1024.8L651.3,1025.9L655.7,1029.8L658.7,1032.3"><title>Mahaweli</title></path>
+<path class="river-line" d="M744.4,834.4L745.1,832.8L745.4,825.7L746.3,821.8L753.1,812.9L755.9,811.3L764.1,808.3L767.2,806.0L767.7,804.3L767.3,799.9L768.0,798.0L769.7,797.0L773.0,796.6L774.3,795.5L776.7,788.8L777.6,781.5L779.4,774.6L784.6,768.7L791.5,766.2L814.4,768.6M658.7,1032.3L664.6,1041.6L674.0,1042.3L685.0,1040.7L695.6,1042.9L698.9,1040.9L704.3,1039.3L711.2,1032.9L711.7,1024.5L706.1,1005.8L702.6,945.8L707.5,921.4L706.9,916.5L705.1,910.6L706.0,885.5M620.1,1083.7L620.2,1079.2L622.0,1076.4L621.9,1074.6L616.6,1073.1L613.0,1073.3L609.5,1074.0L606.0,1074.4L602.5,1073.1L599.0,1069.9L597.8,1066.6L598.8,1063.2L601.6,1059.8L602.5,1058.3L600.7,1055.6L600.7,1053.4L601.7,1051.1L602.5,1049.9L605.2,1047.4L607.3,1043.9L608.0,1040.0L607.9,1031.5L609.3,1023.9L612.7,1015.2L616.8,1010.0L620.1,1012.9"><title>Mahaweli</title></path>
+<path class="river-line" d="M807.3,1041.1L815.2,1040.7L819.6,1040.1L826.8,1039.5L837.2,1039.5L844.3,1038.3L847.9,1037.1L848.0,1037.0"><title>river</title></path>
+<path class="river-line" d="M847.8,1037.1L858.9,1032.8L868.4,1031.7L870.2,1030.3L871.3,1027.7L874.5,1023.4L882.4,1020.0L899.8,1021.2L906.0,1017.9L910.8,1019.6L919.0,1018.6L934.1,1014.3M787.9,1088.2L786.8,1086.5L783.9,1076.6L783.7,1071.7L783.4,1070.1L780.6,1063.3L781.4,1060.8L790.5,1052.6L792.4,1049.6L793.2,1045.8L796.3,1044.4L799.4,1042.6L802.5,1041.2L807.3,1041.1"><title>river</title></path></g>
+  <g class="states-layer"><path class="state-line" d="M688.2,579.1L688.3,583.1L691.3,585.2L691.3,585.3L688.6,587.8L686.2,590.7L686.2,590.7L690.2,593.8L694.5,593.5L698.0,590.2L700.6,585.6L702.3,581.3L702.4,581.4L711.6,592.5L719.8,606.6L723.1,610.1L727.8,611.4L731.5,614.5L737.0,627.8L738.4,629.2L739.9,630.8L739.9,630.8L746.2,633.7L749.3,640.4L752.9,653.9L753.6,651.4L754.4,650.4L755.8,650.7L755.8,650.7L758.3,652.1L757.6,654.6L764.7,662.3L767.0,666.2L767.0,670.8L765.2,672.7L762.5,673.9L760.1,676.8L760.1,676.7L762.0,676.3L763.9,675.8L764.3,675.5L765.3,675.0L765.3,675.0L770.9,687.1L771.7,693.4L765.3,694.4L765.3,694.4L766.6,690.2L764.9,686.9L762.1,686.4L760.1,690.9L760.8,694.3L762.6,696.8L763.6,699.4L761.7,703.3L760.2,702.2L757.4,700.0L753.0,697.3L748.5,696.3L744.3,698.1L741.0,702.5L742.1,704.9L746.1,704.3L751.4,699.9L755.0,703.7L758.4,708.4L762.3,712.3L768.0,713.9L779.7,713.7L783.7,711.1L781.0,705.1L787.7,702.0L790.4,701.2L793.2,701.4L793.2,701.4L796.3,703.2L799.2,706.2L801.3,709.7L803.1,720.1L807.1,733.4L807.3,736.8L807.4,740.3L804.1,738.0L800.7,731.2L797.8,729.7L797.7,731.6L798.9,740.0L799.0,740.6L800.4,743.8L802.1,744.6L803.7,745.4L803.7,745.4L807.2,745.4L809.9,746.6L811.6,756.5L813.5,763.3L813.9,764.5L814.4,768.6L791.5,766.2L787.2,767.8L783.3,767.8L780.1,767.8L777.8,770.3L776.1,773.4L774.1,774.8L772.4,776.4L770.8,783.1L769.5,785.6L765.9,794.1L759.5,795.5L758.2,795.1L757.2,794.4L760.2,792.5L761.5,789.3L760.6,784.4L760.7,781.1L760.3,777.8L758.5,775.2L755.3,775.5L750.8,773.2L746.7,770.0L742.4,767.6L737.8,767.6L718.5,762.8L707.7,763.9L704.5,760.7L703.5,755.3L699.6,752.2L695.4,750.6L692.4,746.2L688.6,747.3L694.1,727.5L694.7,724.3L695.8,721.2L698.9,718.0L702.5,715.7L704.7,711.9L702.9,707.9L700.0,705.6L697.7,702.7L694.1,694.1L687.3,684.1L686.3,677.9L683.6,675.3L681.4,672.8L681.2,667.5L685.1,658.3L683.2,652.9L678.5,642.5L678.3,631.4L682.6,625.0L685.6,618.3L683.2,616.5L681.1,613.7L677.2,609.4L666.1,601.6L659.6,597.9L652.1,597.7L644.9,600.7L646.0,596.2L648.1,592.5L658.2,587.8L670.0,586.3L674.8,584.9L679.3,582.2L684.2,580.8L688.2,579.1L688.2,579.1"><title> </title></path><text class="state-label" x="0" y="0"></text>
+<path class="state-line" d="M612.6,458.8L642.7,483.4L643.0,483.8L644.8,486.8L647.6,490.4L653.1,495.6L656.6,500.1L653.5,501.7L653.5,501.7L651.7,501.0L651.5,500.9L651.5,500.8L648.8,497.4L647.3,496.6L647.3,496.6L642.7,495.8L640.7,496.5L641.7,498.5L642.0,499.2L655.2,511.5L660.4,514.4L660.4,514.4L658.4,511.2L657.1,508.3L657.8,506.1L661.3,505.3L663.0,506.4L665.7,514.4L668.1,519.3L677.8,538.7L675.9,538.0L670.5,536.0L667.1,535.9L665.7,539.6L667.6,540.5L671.8,541.2L675.5,543.6L675.5,543.9L676.1,549.5L676.1,549.5L677.8,549.5L678.7,548.0L679.4,547.3L680.3,546.9L681.5,546.1L681.5,546.1L682.8,551.2L682.9,551.9L686.5,560.2L691.4,567.6L696.3,570.8L696.7,571.1L697.2,571.6L697.2,573.4L696.0,575.2L693.7,576.0L693.0,575.3L690.2,570.8L687.1,569.2L680.1,567.4L676.1,565.5L677.9,568.1L679.0,569.5L688.2,578.2L688.2,579.1L688.2,579.1L684.2,580.8L679.3,582.2L674.8,584.9L670.0,586.3L658.2,587.8L648.1,592.5L652.8,575.0L649.7,570.9L641.6,565.9L633.6,564.7L629.9,567.2L625.9,568.2L626.3,564.7L628.8,561.0L625.8,555.8L619.0,555.1L618.0,546.8L610.1,543.8L601.8,544.0L601.3,545.2L600.8,546.6L598.4,548.0L595.8,549.2L591.5,553.1L585.2,555.9L581.3,550.0L574.9,546.0L566.1,546.2L561.2,545.9L556.6,546.3L555.9,550.1L557.9,552.8L561.7,553.4L561.9,555.5L561.9,557.8L562.8,562.2L563.1,566.6L558.6,573.5L551.4,579.3L539.6,586.7L497.5,588.9L500.8,579.7L499.6,577.9L498.4,575.6L499.3,572.6L500.6,569.7L501.5,566.8L502.6,564.3L508.2,562.4L508.6,557.1L508.0,551.0L509.0,547.3L509.2,543.3L508.9,541.4L508.4,539.6L503.7,532.1L502.2,523.7L501.9,514.9L508.6,515.7L508.0,508.6L514.6,499.9L534.2,497.6L541.2,497.5L548.0,498.8L554.8,498.2L559.1,487.0L562.6,486.9L574.2,487.5L580.6,487.1L584.9,484.8L588.5,473.1L589.7,472.7L591.6,475.1L596.6,479.4L602.4,482.6L601.7,476.7L602.5,470.8L607.9,466.6L608.5,462.3L609.7,461.0L611.0,460.1L612.5,458.8L612.6,458.8"><title> </title></path><text class="state-label" x="0" y="0"></text>
+<path class="state-line" d="M565.7,427.3L566.3,427.5L566.3,425.6L557.0,420.9L534.7,402.5L516.4,381.2L507.1,376.2L492.5,372.7L488.6,369.9L488.2,366.0L493.5,363.7L495.2,363.4L500.5,362.5L511.1,362.0L516.1,363.0L519.7,365.5L522.0,373.9L524.3,377.4L557.6,416.8L562.5,420.4L572.4,426.1L612.6,458.8L612.5,458.8L611.0,460.1L609.7,461.0L592.4,449.1L586.4,446.3L581.1,445.2L580.3,444.8L579.6,444.4L575.0,440.9L573.2,439.9L571.5,439.6L569.4,439.7L568.9,437.1L565.7,427.3M518.4,417.2L505.3,411.5L500.6,408.7L497.5,408.7L498.0,415.0L499.8,416.8L502.5,418.9L504.1,421.5L502.5,424.8L500.6,425.3L498.7,424.3L497.0,422.9L492.2,420.3L482.7,412.0L477.2,409.6L477.2,409.7L480.0,412.7L485.0,417.1L487.8,420.2L481.6,419.0L475.5,416.5L463.3,409.6L453.5,401.9L447.8,399.8L447.2,399.5L445.0,398.0L442.9,397.2L442.6,399.0L439.8,397.1L438.8,394.6L438.3,391.6L437.3,388.3L435.6,385.4L434.6,384.1L432.0,380.7L430.4,377.7L435.9,374.9L445.9,365.6L450.4,363.6L450.5,363.6L470.3,365.4L480.7,364.3L484.5,364.7L486.0,368.2L485.7,373.6L486.5,375.5L488.6,376.2L490.7,376.5L496.8,378.1L498.1,378.8L499.2,381.0L502.0,380.9L504.1,380.3L505.0,380.0L506.2,379.9L507.1,379.7L507.1,379.7L509.1,380.9L509.9,381.4L517.0,389.2L527.3,400.4L527.3,400.4L523.8,407.8L518.4,417.2M426.8,416.6L422.8,413.7L418.9,407.8L412.8,395.4L415.6,391.0L416.3,385.3L417.9,380.8L423.4,379.6L426.4,380.5L426.4,380.5L426.6,382.7L425.6,385.7L424.9,389.2L425.0,392.7L425.4,395.6L425.4,395.7L425.6,396.3L426.5,398.4L427.7,399.7L428.6,400.7L429.7,401.0L434.6,400.8L435.4,401.5L435.8,405.4L436.4,407.0L439.3,408.8L443.2,410.5L446.5,412.4L446.8,413.0L447.6,414.9L445.9,416.7L442.5,416.7L438.9,415.6L436.4,414.0L434.6,413.5L430.0,416.2L426.8,416.6L426.8,416.6M384.7,446.8L382.6,448.7L380.6,450.7L374.1,451.0L368.2,449.0L365.6,445.8L365.6,435.2L366.4,432.5L368.0,432.8L369.8,435.0L370.8,437.7L375.2,439.1L380.4,439.6L381.7,440.5L384.7,446.8"><title> </title></path><text class="state-label" x="0" y="0"></text>
+<path class="state-line" d="M481.0,522.0L482.6,515.7L482.6,500.7L483.2,498.5L482.7,497.0L479.7,496.5L472.7,492.8L470.0,490.2L468.3,485.4L468.0,484.5L466.8,478.4L466.6,475.0L469.7,471.8L475.3,469.0L481.6,467.0L486.7,466.2L489.0,465.0L494.6,457.6L495.3,457.1L496.3,456.3L498.1,455.2L500.4,454.4L503.3,453.9L500.9,449.4L499.5,447.4L498.0,445.5L494.3,441.7L489.3,438.0L470.5,426.9L466.7,422.1L474.9,422.4L482.7,425.5L498.0,434.5L512.6,438.2L516.5,440.7L522.5,446.0L524.0,448.8L520.9,450.4L521.6,452.2L522.5,453.9L520.9,455.7L520.9,455.7L526.2,459.3L538.8,456.2L561.8,447.1L568.0,447.7L581.6,451.4L597.6,458.7L609.7,461.0L609.7,461.0L608.5,462.3L607.9,466.6L602.5,470.8L601.7,476.7L602.4,482.6L596.6,479.4L591.6,475.1L589.7,472.7L588.5,473.1L584.9,484.8L580.6,487.1L574.2,487.5L562.6,486.9L559.1,487.0L554.8,498.2L548.0,498.8L541.2,497.5L534.2,497.6L514.6,499.9L508.0,508.6L508.6,515.7L501.9,514.9L497.0,518.5L491.6,521.3L482.9,522.0L481.0,522.0M527.3,400.4L539.4,413.8L547.3,418.8L565.7,427.3L568.9,437.1L569.4,439.7L566.2,439.9L564.3,440.7L564.0,441.1L563.4,442.0L562.4,442.5L559.0,440.0L557.7,439.8L549.4,440.0L547.1,439.3L529.0,423.5L521.2,418.5L521.2,418.5L518.4,417.2L523.8,407.8L527.3,400.4L527.3,400.4"><title> </title></path><text class="state-label" x="0" y="0"></text>
+<path class="state-line" d="M430.5,686.4L431.4,685.4L431.8,684.1L434.4,676.2L434.7,675.9L434.9,675.7L435.5,673.4L437.9,668.3L440.2,643.1L434.1,627.1L434.6,624.3L435.1,606.0L435.1,605.8L434.5,599.7L433.7,596.7L432.4,594.4L431.4,591.8L433.7,590.6L437.2,589.9L439.4,589.2L454.2,575.9L462.0,572.1L465.2,569.3L466.9,563.0L470.0,556.5L471.7,547.5L480.0,526.3L480.2,525.1L481.0,522.0L482.9,522.0L491.6,521.3L497.0,518.5L501.9,514.9L502.2,523.7L503.7,532.1L508.4,539.6L508.9,541.4L509.2,543.3L509.0,547.3L508.0,551.0L508.6,557.1L508.2,562.4L502.6,564.3L501.5,566.8L500.6,569.7L499.3,572.6L498.4,575.6L499.6,577.9L500.8,579.7L497.5,588.9L539.6,586.7L546.5,590.0L550.4,596.3L554.3,606.2L553.0,615.2L539.3,620.3L524.9,622.1L515.7,621.0L508.6,625.0L504.8,633.6L498.2,634.3L497.2,638.1L497.1,641.5L503.2,646.1L512.8,658.6L488.0,665.1L475.5,665.0L464.1,660.4L466.1,675.5L465.5,699.4L463.1,699.1L461.0,698.1L454.2,694.2L447.6,691.4L440.1,690.7L433.4,688.1L430.5,686.4M380.1,556.3L377.3,555.2L376.0,552.7L376.8,550.2L380.1,549.1L391.5,549.1L396.6,550.5L401.8,551.8L412.6,556.0L423.0,562.1L431.7,570.6L431.6,570.5L427.5,569.7L420.1,566.0L415.8,565.2L422.4,572.8L427.6,578.8L429.9,582.9L423.8,582.1L419.8,579.0L417.1,575.6L415.0,574.0L412.4,572.7L401.9,563.3L396.7,560.9L391.5,558.6L387.7,557.5L385.7,557.0L380.1,556.3"><title> </title></path><text class="state-label" x="0" y="0"></text>
+<path class="state-line" d="M408.0,1020.9L397.1,939.9L395.6,936.5L396.7,935.4L397.4,935.3L399.3,936.5L399.7,932.1L401.0,926.9L401.3,924.4L401.6,921.9L400.2,918.0L398.3,914.5L397.9,912.1L397.5,909.7L397.6,900.2L391.8,871.3L391.1,867.9L388.1,861.6L385.5,848.2L381.3,837.7L375.0,808.6L375.0,800.3L376.1,800.8L376.1,800.8L376.2,800.9L376.2,801.2L376.8,802.1L377.7,797.3L376.4,782.0L375.1,777.4L379.3,774.6L383.3,769.5L386.2,763.7L387.3,758.8L388.5,755.5L396.1,743.6L396.0,743.8L392.1,752.8L387.3,761.4L388.4,763.5L388.6,764.0L390.5,765.9L393.0,766.9L396.0,766.9L393.5,773.9L390.9,779.0L389.8,779.9L388.6,780.0L387.7,780.8L387.2,783.5L387.5,789.6L387.2,791.5L382.9,805.3L383.0,807.9L383.3,813.0L387.8,818.4L389.1,819.9L383.9,830.6L392.1,836.5L403.9,837.5L410.0,833.2L408.8,828.6L406.9,825.0L406.2,823.6L405.2,822.5L403.0,819.6L400.4,818.0L399.7,815.2L408.3,798.8L408.0,795.8L406.9,793.6L405.6,791.7L404.9,789.8L404.7,786.7L405.0,781.3L404.9,779.1L404.9,779.1L404.7,778.6L404.1,776.8L403.6,776.4L403.1,776.0L402.7,774.9L403.2,772.0L404.4,769.6L407.7,765.2L408.4,762.3L409.0,756.9L411.4,746.1L413.9,720.9L415.4,718.1L417.1,716.7L418.4,714.9L419.0,711.2L419.0,700.4L420.5,695.2L424.0,691.8L428.1,689.0L430.5,686.4L433.4,688.1L440.1,690.7L447.6,691.4L454.2,694.2L461.0,698.1L462.4,708.7L457.7,718.6L449.8,725.1L449.4,726.9L448.2,729.3L443.9,731.2L441.1,737.6L444.9,744.9L451.2,770.9L452.7,775.5L458.1,775.5L462.4,773.5L466.9,777.0L472.1,776.8L475.9,779.8L478.7,783.5L479.2,788.4L479.0,793.6L481.7,803.8L482.7,808.9L485.1,813.5L488.5,814.7L491.6,816.7L491.0,819.7L490.0,823.1L490.2,830.1L489.9,835.9L487.9,838.9L486.5,841.9L489.5,847.6L486.3,850.1L481.0,847.1L479.5,849.6L479.4,852.7L477.5,854.8L475.9,855.3L476.1,854.8L476.4,854.4L472.6,856.1L471.0,859.7L470.6,862.3L469.6,864.7L464.2,867.5L462.9,870.1L462.2,872.9L459.1,875.0L455.8,876.8L454.8,879.6L454.3,882.6L451.9,888.9L451.1,895.7L452.4,898.6L453.4,901.3L451.6,903.6L448.8,904.8L445.2,905.1L441.9,906.1L440.1,909.1L438.8,912.5L441.9,913.3L443.3,915.6L440.3,917.3L436.6,918.2L434.8,920.8L433.8,923.7L430.0,930.2L427.2,937.3L426.7,946.2L427.1,955.1L436.5,1006.0L437.1,1021.3L432.6,1019.6L428.8,1021.9L425.8,1021.6L423.8,1019.3L418.9,1020.0L414.1,1021.2L408.0,1020.9"><title> </title></path><text class="state-label" x="0" y="0"></text>
+<path class="state-line" d="M413.3,1101.2L415.9,1095.1L416.6,1092.1L416.5,1089.1L416.5,1089.1L404.3,1045.5L406.0,1039.1L406.0,1043.0L406.9,1045.5L408.3,1047.4L409.5,1049.7L411.9,1058.3L413.1,1060.4L414.7,1060.4L415.1,1057.9L415.8,1056.9L416.5,1056.7L416.5,1056.7L416.6,1056.9L416.6,1049.0L416.6,1048.9L416.0,1045.5L414.8,1042.6L413.5,1041.8L410.2,1041.0L408.7,1040.0L408.5,1039.7L407.6,1037.8L408.0,1035.8L409.0,1033.9L409.5,1032.0L408.0,1020.9L414.1,1021.2L418.9,1020.0L423.8,1019.3L425.8,1021.6L428.8,1021.9L432.6,1019.6L437.1,1021.3L442.5,1019.2L452.3,1011.6L458.4,1011.3L465.5,1016.3L472.9,1014.1L479.2,1009.7L486.3,1008.4L488.6,1011.0L489.3,1013.2L490.8,1015.3L497.2,1022.6L501.6,1025.9L502.1,1029.3L499.5,1031.3L498.8,1040.2L495.5,1043.3L491.5,1045.4L490.4,1052.7L493.5,1059.2L499.7,1057.7L505.1,1059.3L503.2,1063.7L499.5,1066.3L496.2,1073.8L494.9,1081.3L498.7,1093.5L498.7,1095.9L497.9,1098.0L493.3,1099.7L486.4,1098.9L481.3,1101.3L477.2,1105.3L476.2,1110.2L475.9,1115.2L470.4,1115.5L465.8,1114.9L462.9,1113.8L460.0,1112.2L456.9,1109.3L453.5,1107.2L449.1,1107.5L444.7,1108.4L432.0,1104.6L429.6,1105.5L427.6,1106.7L423.1,1105.6L418.9,1103.3L413.3,1101.2"><title> </title></path><text class="state-label" x="0" y="0"></text>
+<path class="state-line" d="M426.3,1166.5L416.8,1141.9L413.3,1122.4L413.0,1120.5L413.0,1101.9L413.3,1101.2L418.9,1103.3L423.1,1105.6L427.6,1106.7L429.6,1105.5L432.0,1104.6L444.7,1108.4L449.1,1107.5L453.5,1107.2L456.9,1109.3L460.0,1112.2L462.9,1113.8L465.8,1114.9L470.4,1115.5L475.9,1115.2L476.2,1110.2L477.2,1105.3L481.3,1101.3L486.4,1098.9L493.3,1099.7L497.9,1098.0L503.5,1098.4L507.9,1100.7L508.7,1105.4L505.3,1108.5L505.6,1111.0L505.8,1113.6L502.5,1117.6L499.7,1122.0L498.6,1125.6L497.3,1128.6L503.6,1135.3L497.9,1140.4L490.4,1138.7L482.1,1142.2L483.7,1149.6L478.7,1148.3L475.4,1140.6L474.1,1139.8L472.5,1139.5L469.3,1143.2L465.3,1145.2L462.5,1143.9L459.6,1144.2L449.8,1152.7L446.9,1154.0L443.9,1154.7L436.5,1157.4L424.7,1150.0L424.4,1154.3L425.9,1159.1L426.8,1162.4L426.8,1165.6L426.7,1165.8L426.3,1166.5"><title> </title></path><text class="state-label" x="0" y="0"></text>
+<path class="state-line" d="M447.1,1236.5L446.1,1232.0L445.5,1231.6L444.4,1230.9L443.3,1229.9L442.6,1228.5L442.9,1227.0L444.1,1226.6L445.4,1226.8L445.4,1226.8L446.1,1226.7L444.1,1213.2L444.0,1212.1L438.6,1198.4L426.3,1166.5L426.7,1165.8L426.8,1165.6L426.8,1162.4L425.9,1159.1L424.4,1154.3L424.7,1150.0L436.5,1157.4L443.9,1154.7L446.9,1154.0L449.8,1152.7L459.6,1144.2L462.5,1143.9L465.3,1145.2L469.3,1143.2L472.5,1139.5L474.1,1139.8L475.4,1140.6L478.7,1148.3L483.7,1149.6L482.1,1142.2L490.4,1138.7L497.9,1140.4L498.8,1145.7L503.2,1157.6L502.8,1161.7L504.5,1166.5L507.0,1171.7L514.8,1179.3L516.3,1186.8L519.1,1189.5L522.7,1190.9L528.4,1196.1L532.1,1203.2L528.2,1204.7L529.6,1209.1L540.4,1224.4L549.7,1240.5L540.5,1242.6L531.6,1248.1L526.8,1250.2L526.8,1255.8L528.7,1261.4L528.2,1266.5L524.2,1263.3L520.3,1259.5L512.7,1253.7L504.9,1254.3L497.9,1258.3L486.8,1256.1L482.5,1253.3L478.4,1249.6L473.3,1247.4L468.6,1246.4L459.2,1242.0L457.9,1239.8L456.0,1238.0L453.4,1239.0L451.8,1240.2L450.3,1238.8L448.9,1236.9L447.1,1236.5"><title> </title></path><text class="state-label" x="0" y="0"></text>
+<path class="state-line" d="M550.4,1359.7L548.7,1359.5L547.5,1359.0L546.6,1357.7L545.6,1356.5L543.6,1356.0L542.4,1356.4L541.4,1357.2L540.4,1357.9L539.1,1357.9L538.6,1357.5L538.2,1357.2L536.6,1354.8L535.8,1354.4L535.6,1354.2L535.6,1354.2L533.8,1353.6L522.8,1349.6L518.3,1348.7L515.1,1348.0L509.5,1343.5L508.3,1342.9L505.8,1341.7L505.8,1341.7L503.9,1343.6L499.1,1339.7L478.2,1317.5L476.5,1316.2L476.5,1316.2L476.3,1315.9L475.7,1315.2L475.4,1314.1L475.5,1311.9L474.9,1310.8L474.0,1309.7L471.7,1306.6L459.9,1281.6L459.4,1279.2L459.4,1279.1L459.4,1277.0L459.5,1274.9L459.5,1274.8L459.1,1273.5L456.9,1269.1L454.8,1257.0L450.1,1248.6L447.1,1236.5L448.9,1236.9L450.3,1238.8L451.8,1240.2L453.4,1239.0L456.0,1238.0L457.9,1239.8L459.2,1242.0L468.6,1246.4L473.3,1247.4L478.4,1249.6L482.5,1253.3L486.8,1256.1L497.9,1258.3L504.9,1254.3L512.7,1253.7L520.3,1259.5L524.2,1263.3L528.2,1266.5L528.7,1261.4L526.8,1255.8L526.8,1250.2L531.6,1248.1L540.5,1242.6L549.7,1240.5L552.8,1243.8L556.3,1246.7L560.6,1248.5L564.4,1248.6L572.4,1252.5L576.5,1252.4L578.7,1255.6L573.5,1257.2L570.0,1260.7L573.0,1265.3L577.0,1269.3L575.4,1276.6L567.5,1274.7L562.6,1270.1L557.2,1266.0L553.0,1264.8L548.9,1265.9L551.4,1270.7L556.5,1273.9L561.9,1281.7L563.8,1289.1L559.3,1294.6L550.3,1293.0L553.0,1296.2L554.2,1300.4L552.3,1305.7L550.0,1310.7L551.7,1315.7L555.6,1319.5L560.2,1322.6L564.2,1326.3L560.7,1330.4L556.7,1334.6L553.1,1336.0L551.6,1338.4L552.4,1341.1L554.4,1342.2L558.9,1344.1L557.3,1347.2L552.7,1348.9L549.8,1353.9L549.9,1356.8L550.3,1359.5L550.4,1359.7"><title> </title></path><text class="state-label" x="0" y="0"></text>
+<path class="state-line" d="M638.9,1356.7L634.9,1361.3L624.4,1360.7L624.4,1360.7L620.0,1361.3L616.6,1362.6L613.1,1364.6L606.8,1369.3L605.0,1369.7L603.2,1370.1L599.0,1368.5L594.4,1366.1L591.9,1365.4L590.1,1364.8L575.2,1366.6L571.0,1365.7L568.8,1363.6L567.4,1360.8L566.3,1359.2L565.5,1357.9L561.2,1360.5L557.3,1360.8L550.4,1359.7L550.3,1359.5L549.9,1356.8L549.8,1353.9L552.7,1348.9L557.3,1347.2L558.9,1344.1L554.4,1342.2L552.4,1341.1L551.6,1338.4L553.1,1336.0L556.7,1334.6L560.7,1330.4L564.2,1326.3L560.2,1322.6L555.6,1319.5L551.7,1315.7L550.0,1310.7L552.3,1305.7L554.2,1300.4L553.0,1296.2L550.3,1293.0L559.3,1294.6L563.8,1289.1L561.9,1281.7L556.5,1273.9L551.4,1270.7L548.9,1265.9L553.0,1264.8L557.2,1266.0L562.6,1270.1L567.5,1274.7L575.4,1276.6L577.0,1269.3L573.0,1265.3L570.0,1260.7L573.5,1257.2L578.7,1255.6L583.8,1254.9L588.8,1253.7L590.6,1249.5L594.9,1249.5L606.2,1248.0L609.9,1254.9L608.2,1259.4L612.8,1260.3L619.0,1259.2L621.9,1262.8L621.6,1265.2L624.9,1267.7L623.6,1269.0L623.6,1271.5L621.2,1272.4L621.6,1274.4L619.9,1278.9L621.6,1283.0L611.7,1290.4L608.6,1301.6L613.1,1304.7L617.9,1306.5L620.2,1306.1L621.6,1307.5L620.3,1310.2L618.8,1312.5L619.7,1316.9L623.9,1319.2L626.9,1318.7L629.7,1319.3L628.8,1321.6L626.5,1323.7L629.3,1333.7L621.0,1337.2L621.6,1341.3L625.2,1343.7L627.6,1343.9L629.8,1345.1L629.7,1347.2L627.9,1348.3L630.9,1353.0L637.4,1355.9L638.9,1356.7"><title> </title></path><text class="state-label" x="0" y="0"></text>
+<path class="state-line" d="M890.8,1218.5L883.0,1230.9L874.9,1239.0L860.1,1249.6L855.2,1251.1L848.7,1254.6L801.1,1292.2L791.6,1297.4L760.7,1308.4L760.7,1308.4L760.3,1304.7L760.2,1304.5L758.4,1303.0L758.4,1303.0L757.9,1303.1L756.4,1303.5L755.4,1305.6L754.9,1310.0L753.5,1311.6L751.3,1312.2L748.3,1313.5L742.7,1316.9L737.1,1319.4L710.4,1325.1L697.5,1329.6L683.3,1332.2L676.8,1334.7L672.9,1340.2L666.0,1338.8L661.7,1340.5L659.3,1341.4L649.4,1348.7L639.5,1356.0L638.9,1356.7L637.4,1355.9L630.9,1353.0L627.9,1348.3L629.7,1347.2L629.8,1345.1L627.6,1343.9L625.2,1343.7L621.6,1341.3L621.0,1337.2L629.3,1333.7L626.5,1323.7L628.8,1321.6L629.7,1319.3L626.9,1318.7L623.9,1319.2L619.7,1316.9L618.8,1312.5L620.3,1310.2L621.6,1307.5L620.2,1306.1L617.9,1306.5L613.1,1304.7L608.6,1301.6L611.7,1290.4L621.6,1283.0L619.9,1278.9L621.6,1274.4L621.2,1272.4L623.6,1271.5L638.2,1274.3L657.1,1281.2L662.0,1281.9L666.9,1280.7L671.8,1280.3L675.7,1283.3L678.7,1286.8L688.1,1288.7L693.5,1290.5L694.8,1286.0L692.4,1279.4L687.7,1274.1L694.0,1270.0L700.4,1266.5L707.7,1264.1L713.2,1259.9L710.8,1254.1L712.0,1248.3L715.3,1248.3L718.7,1248.0L720.8,1245.0L720.8,1241.6L723.9,1243.9L726.4,1241.1L732.8,1241.0L739.2,1241.8L743.6,1243.4L745.5,1248.1L748.1,1248.5L750.8,1248.3L753.2,1246.7L756.4,1246.3L761.2,1252.6L765.1,1259.2L771.6,1261.9L778.6,1258.1L781.1,1255.5L785.0,1253.9L792.5,1251.9L807.7,1245.9L810.5,1243.9L811.2,1244.7L813.4,1245.0L820.3,1242.5L827.4,1244.1L830.7,1238.6L830.7,1236.4L830.6,1234.2L831.7,1232.7L832.9,1230.8L831.5,1227.4L831.4,1223.0L836.5,1219.0L842.6,1216.2L847.2,1211.7L852.6,1207.5L859.5,1206.2L864.1,1200.9L871.8,1210.3L874.7,1210.5L878.0,1210.9L882.3,1215.8L888.5,1217.8L890.8,1218.5"><title> </title></path><text class="state-label" x="0" y="0"></text>
+<path class="state-line" d="M905.1,973.1L905.4,974.1L907.5,974.6L909.5,971.9L911.1,971.9L911.1,971.9L913.1,982.3L913.0,986.2L913.1,986.2L914.8,986.2L914.8,986.1L915.0,982.4L915.6,978.9L916.7,975.8L918.3,973.7L918.3,971.9L918.1,971.5L917.6,969.9L918.0,969.1L919.5,969.7L921.8,971.9L922.5,973.9L923.1,979.4L927.1,985.6L933.5,1007.6L932.5,1068.3L933.1,1072.4L935.8,1081.5L936.2,1086.9L934.8,1097.1L923.1,1138.1L922.4,1142.4L922.2,1147.9L921.3,1152.6L917.6,1159.8L916.8,1163.0L915.4,1167.4L910.4,1175.2L908.1,1178.9L909.9,1185.2L907.1,1192.6L890.8,1218.5L888.5,1217.8L882.3,1215.8L878.0,1210.9L874.7,1210.5L871.8,1210.3L864.1,1200.9L870.6,1106.2L869.3,1101.1L866.3,1096.7L866.2,1091.7L864.4,1086.7L865.6,1081.6L866.1,1076.8L858.5,1072.2L849.4,1069.9L848.1,1068.7L846.5,1067.8L844.6,1067.8L842.5,1066.9L840.5,1063.3L839.5,1059.3L836.2,1053.3L839.1,1045.3L844.5,1038.9L848.6,1035.6L843.1,1027.9L842.3,1022.4L838.7,1016.2L833.0,1011.2L832.0,1006.3L832.4,1000.1L829.3,986.5L829.8,983.0L828.1,982.7L826.5,981.8L830.3,975.9L825.2,974.5L818.8,978.0L815.7,979.1L812.9,980.3L812.0,982.7L810.2,985.5L806.7,986.4L804.1,986.6L804.1,990.0L805.5,993.0L805.8,996.1L804.7,998.6L802.9,1000.8L801.7,1002.6L796.5,1005.5L790.2,1005.2L790.2,1015.1L791.6,1024.7L786.8,1028.2L781.6,1030.0L779.4,1025.8L777.4,1020.9L776.5,1016.2L774.2,1011.6L772.4,1008.6L771.3,1006.3L768.2,1005.7L765.9,1006.2L762.1,1002.4L759.3,996.4L757.6,985.1L756.6,981.8L755.8,978.7L756.5,976.3L757.9,973.7L760.6,961.1L759.6,948.2L748.2,945.8L735.7,952.8L730.2,957.9L727.2,959.1L724.6,959.7L719.9,961.3L713.6,950.8L711.6,944.6L711.2,940.4L709.6,936.7L705.7,934.3L705.0,933.7L707.5,921.4L706.9,916.5L705.0,910.7L705.2,906.3L710.0,906.3L719.6,905.4L724.3,904.6L733.6,908.2L741.1,915.8L753.5,919.6L759.5,923.0L764.5,923.6L765.1,921.0L766.3,918.0L768.0,916.2L769.4,913.5L768.6,907.4L769.7,901.6L776.6,902.9L784.9,902.5L791.7,904.7L800.5,917.4L806.1,922.8L813.9,925.0L822.0,926.5L821.7,934.3L819.2,941.8L819.7,946.1L822.1,950.0L830.1,954.8L834.5,959.0L851.3,961.9L868.3,960.0L874.3,956.6L874.4,963.1L876.4,969.4L877.2,984.0L879.1,988.2L888.0,979.3L893.2,975.1L900.2,973.9L905.1,973.1"><title> </title></path><text class="state-label" x="0" y="0"></text>
+<path class="state-line" d="M897.0,921.6L896.6,918.9L895.6,916.8L894.3,914.2L893.5,911.7L893.6,909.0L894.4,906.7L894.7,904.2L893.5,901.2L893.5,901.1L896.8,904.3L899.9,911.8L902.3,915.2L902.8,916.7L905.2,923.1L911.5,933.0L914.3,937.6L918.7,960.1L918.7,960.1L918.6,965.2L914.8,968.4L911.2,965.5L910.1,964.4L909.6,963.8L909.4,962.6L909.2,961.3L909.2,960.8L910.3,944.5L909.5,938.9L906.7,936.5L905.6,934.2L897.0,921.6M814.4,768.6L814.4,768.7L815.2,771.3L820.5,789.4L822.6,801.1L818.0,807.5L818.0,807.6L815.4,796.9L815.0,795.4L811.1,784.7L809.2,784.7L808.9,792.8L809.2,795.4L809.0,795.3L808.8,796.1L808.8,796.1L808.9,797.4L809.2,798.9L810.1,799.9L812.2,800.6L812.3,800.6L812.7,801.4L814.8,806.8L819.3,810.1L819.3,810.1L823.6,809.7L825.1,804.2L826.6,804.2L828.3,807.2L828.7,808.0L830.8,817.3L833.0,820.8L835.8,824.0L837.7,827.0L840.8,834.3L842.1,833.0L843.7,831.8L844.5,830.6L845.6,833.0L844.5,834.3L845.0,835.2L845.5,835.8L845.6,836.0L845.9,836.5L846.1,837.6L846.1,837.6L847.4,836.6L850.0,835.3L851.3,834.3L851.3,834.3L851.9,835.7L852.7,837.5L852.1,839.6L851.2,841.7L851.3,843.3L851.3,844.8L853.1,848.3L856.3,850.7L858.4,852.3L860.2,855.4L859.1,855.5L858.5,855.9L857.7,856.4L857.2,856.7L856.7,857.0L856.0,859.8L855.2,862.6L858.3,871.4L859.9,873.3L863.5,877.5L863.6,877.5L869.0,876.5L870.7,876.5L872.5,881.9L874.6,885.2L875.2,886.3L886.2,897.8L889.8,903.4L890.4,908.4L884.8,910.1L884.8,910.1L882.1,908.4L875.8,900.4L872.5,897.5L868.3,896.0L868.2,896.0L867.8,896.0L864.8,896.3L862.1,899.0L860.3,904.7L863.4,906.1L866.4,906.5L868.9,905.6L870.8,902.9L873.8,904.1L876.6,905.5L877.6,906.6L878.2,907.4L877.8,910.1L881.2,913.3L884.6,916.5L887.3,919.6L890.1,924.2L890.1,924.2L888.7,925.8L888.4,927.2L888.9,929.0L890.1,931.4L891.7,929.5L890.7,926.0L890.7,926.0L893.7,927.0L899.7,931.4L901.1,933.5L905.8,945.5L905.5,946.0L904.1,952.5L904.3,953.3L904.3,953.4L905.6,955.9L905.8,956.9L904.9,958.6L903.0,960.1L901.9,961.6L903.2,963.9L904.5,965.6L904.9,966.9L905.0,967.0L905.8,968.5L907.6,970.2L904.9,972.2L905.1,973.1L900.2,973.9L893.2,975.1L888.0,979.3L879.1,988.2L877.2,984.0L876.4,969.4L874.4,963.1L874.3,956.6L868.3,960.0L851.3,961.9L834.5,959.0L830.1,954.8L822.1,950.0L819.7,946.1L819.2,941.8L821.7,934.3L822.0,926.5L813.9,925.0L806.1,922.8L800.5,917.4L791.7,904.7L784.9,902.5L776.6,902.9L769.7,901.6L766.1,881.6L768.3,861.7L770.2,854.2L776.0,850.3L783.3,849.3L792.5,850.5L794.9,850.3L792.8,840.7L788.5,831.4L786.6,821.9L788.6,781.2L787.2,767.8L791.5,766.2L814.4,768.6"><title> </title></path><text class="state-label" x="0" y="0"></text>
+<path class="state-line" d="M689.7,1173.0L685.5,1179.4L682.9,1186.1L678.2,1191.7L675.7,1197.4L673.2,1208.6L668.4,1215.5L664.5,1222.8L665.3,1227.1L666.9,1231.2L667.1,1247.1L670.0,1252.6L673.6,1257.5L678.5,1260.1L683.2,1263.4L685.6,1268.1L687.7,1274.1L692.4,1279.4L694.8,1286.0L693.5,1290.5L688.1,1288.7L678.7,1286.8L675.7,1283.3L671.8,1280.3L666.9,1280.7L662.0,1281.9L657.1,1281.2L638.2,1274.3L623.6,1271.5L623.6,1269.0L624.9,1267.7L621.6,1265.2L621.9,1262.8L619.0,1259.2L612.8,1260.3L608.2,1259.4L609.9,1254.9L606.2,1248.0L594.9,1249.5L590.6,1249.5L588.8,1253.7L583.8,1254.9L578.7,1255.6L576.5,1252.4L572.4,1252.5L564.4,1248.6L560.6,1248.5L556.3,1246.7L552.8,1243.8L549.7,1240.5L540.4,1224.4L529.6,1209.1L528.2,1204.7L532.1,1203.2L528.4,1196.1L522.7,1190.9L519.1,1189.5L516.3,1186.8L514.8,1179.3L507.0,1171.7L504.5,1166.5L502.8,1161.7L503.2,1157.6L498.8,1145.7L497.9,1140.4L503.6,1135.3L497.3,1128.6L498.6,1125.6L499.7,1122.0L502.5,1117.6L505.8,1113.6L509.7,1111.7L520.3,1122.6L523.5,1126.6L527.4,1129.7L529.3,1128.7L531.9,1128.1L533.7,1130.4L535.0,1132.9L541.4,1134.3L549.2,1129.9L552.4,1129.6L556.2,1129.7L561.7,1132.9L568.8,1135.2L573.9,1136.0L579.0,1135.8L578.8,1140.0L580.6,1141.9L578.6,1143.8L577.7,1146.4L582.9,1150.5L589.2,1151.0L602.5,1154.0L616.6,1155.9L622.0,1155.0L628.3,1154.5L636.8,1154.8L644.8,1153.7L659.3,1146.1L660.0,1155.6L661.9,1154.6L663.8,1153.9L667.3,1157.7L671.7,1159.1L671.1,1161.5L670.3,1163.5L669.3,1164.5L662.4,1167.7L661.2,1171.1L663.9,1175.4L667.8,1178.5L673.6,1179.6L679.8,1177.1L685.0,1173.3L689.7,1173.0"><title> </title></path><text class="state-label" x="0" y="0"></text>
+<path class="state-line" d="M687.7,1274.1L685.6,1268.1L683.2,1263.4L678.5,1260.1L673.6,1257.5L670.0,1252.6L667.1,1247.1L666.9,1231.2L665.3,1227.1L664.5,1222.8L668.4,1215.5L673.2,1208.6L675.7,1197.4L678.2,1191.7L682.9,1186.1L685.5,1179.4L689.7,1173.0L692.8,1173.2L694.8,1176.3L696.0,1180.7L698.0,1181.8L700.0,1182.2L702.4,1187.5L704.1,1193.2L706.0,1194.0L707.7,1195.0L708.8,1203.3L711.8,1207.0L714.0,1210.5L715.0,1203.7L718.6,1198.0L721.4,1199.8L724.2,1201.2L725.0,1195.0L730.3,1193.1L726.5,1187.1L724.1,1179.9L724.0,1176.0L724.6,1172.2L728.4,1166.3L728.0,1161.7L723.6,1160.5L722.5,1157.2L724.7,1152.5L724.2,1147.0L724.8,1141.5L733.5,1140.8L735.7,1136.4L743.2,1134.2L736.9,1125.4L742.4,1122.4L748.9,1120.6L752.2,1117.9L754.7,1114.7L755.9,1112.6L757.4,1111.0L760.0,1112.1L763.3,1111.4L764.6,1107.7L765.3,1103.7L767.0,1101.0L768.4,1098.2L769.3,1091.0L770.5,1086.4L770.5,1081.6L769.8,1078.0L768.5,1074.5L766.6,1072.2L765.2,1071.0L762.4,1067.5L753.0,1070.0L750.0,1066.8L747.4,1061.5L743.5,1057.7L740.3,1053.5L741.1,1048.3L744.1,1043.8L748.3,1044.3L751.9,1048.1L756.1,1046.3L758.4,1042.4L765.4,1033.5L767.4,1028.6L767.4,1023.3L777.4,1020.9L779.4,1025.8L781.6,1030.0L786.8,1028.2L791.6,1024.7L790.2,1015.1L790.2,1005.2L796.5,1005.5L801.7,1002.6L802.9,1000.8L804.7,998.6L805.8,996.1L805.5,993.0L804.1,990.0L804.1,986.6L806.7,986.4L810.2,985.5L812.0,982.7L812.9,980.3L815.7,979.1L818.8,978.0L825.2,974.5L830.3,975.9L826.5,981.8L828.1,982.7L829.8,983.0L829.3,986.5L832.4,1000.1L832.0,1006.3L833.0,1011.2L838.7,1016.2L842.3,1022.4L843.1,1027.9L848.6,1035.6L844.5,1038.9L839.1,1045.3L836.2,1053.3L839.5,1059.3L840.5,1063.3L842.5,1066.9L844.6,1067.8L846.5,1067.8L848.1,1068.7L849.4,1069.9L858.5,1072.2L866.1,1076.8L865.6,1081.6L864.4,1086.7L866.2,1091.7L866.3,1096.7L869.3,1101.1L870.6,1106.2L864.1,1200.9L859.5,1206.2L852.6,1207.5L847.2,1211.7L842.6,1216.2L836.5,1219.0L831.4,1223.0L831.5,1227.4L832.9,1230.8L831.7,1232.7L830.6,1234.2L830.7,1236.4L830.7,1238.6L827.4,1244.1L820.3,1242.5L813.4,1245.0L811.2,1244.7L810.5,1243.9L807.7,1245.9L792.5,1251.9L785.0,1253.9L781.1,1255.5L778.6,1258.1L771.6,1261.9L765.1,1259.2L761.2,1252.6L756.4,1246.3L753.2,1246.7L750.8,1248.3L748.1,1248.5L745.5,1248.1L743.6,1243.4L739.2,1241.8L732.8,1241.0L726.4,1241.1L723.9,1243.9L720.8,1241.6L720.8,1245.0L718.7,1248.0L715.3,1248.3L712.0,1248.3L710.8,1254.1L713.2,1259.9L707.7,1264.1L700.4,1266.5L694.0,1270.0L687.7,1274.1"><title> </title></path><text class="state-label" x="0" y="0"></text>
+<path class="state-line" d="M527.4,1129.7L523.5,1126.6L520.3,1122.6L509.7,1111.7L505.8,1113.6L505.6,1111.0L505.3,1108.5L508.7,1105.4L507.9,1100.7L503.5,1098.4L497.9,1098.0L498.7,1095.9L498.7,1093.5L494.9,1081.3L496.2,1073.8L499.5,1066.3L503.2,1063.7L505.1,1059.3L499.7,1057.7L493.5,1059.2L490.4,1052.7L491.5,1045.4L495.5,1043.3L498.8,1040.2L499.5,1031.3L502.1,1029.3L501.6,1025.9L506.9,1022.9L512.2,1018.2L517.8,1014.1L523.8,1011.3L536.3,1008.5L539.0,1008.4L540.9,1005.9L541.7,1002.9L541.4,997.6L542.3,992.7L548.0,990.5L554.1,991.3L557.8,995.2L560.2,1000.1L563.3,1008.1L574.4,1017.8L573.9,1022.8L576.1,1024.3L582.6,1027.9L585.7,1031.7L585.1,1036.3L585.1,1040.1L588.8,1043.8L591.8,1047.5L590.4,1050.9L588.4,1054.1L585.6,1054.7L582.8,1054.9L578.8,1059.3L569.9,1060.7L566.9,1063.4L570.8,1072.7L572.7,1076.0L570.8,1079.9L570.7,1085.0L571.0,1085.9L571.9,1086.1L569.6,1089.7L566.1,1092.9L564.1,1093.5L562.7,1095.4L564.1,1097.4L565.8,1099.1L564.0,1108.7L566.2,1116.1L573.6,1118.6L579.6,1123.0L581.5,1129.8L581.9,1133.2L579.0,1135.8L573.9,1136.0L568.8,1135.2L561.7,1132.9L556.2,1129.7L552.4,1129.6L549.2,1129.9L541.4,1134.3L535.0,1132.9L533.7,1130.4L531.9,1128.1L529.3,1128.7L527.4,1129.7"><title> </title></path><text class="state-label" x="0" y="0"></text>
+<path class="state-line" d="M777.4,1020.9L767.4,1023.3L767.4,1028.6L765.4,1033.5L758.4,1042.4L756.1,1046.3L751.9,1048.1L748.3,1044.3L744.1,1043.8L741.1,1048.3L740.3,1053.5L743.5,1057.7L747.4,1061.5L750.0,1066.8L753.0,1070.0L762.4,1067.5L765.2,1071.0L766.6,1072.2L768.5,1074.5L769.8,1078.0L770.5,1081.6L770.5,1086.4L769.3,1091.0L768.4,1098.2L767.0,1101.0L765.3,1103.7L764.6,1107.7L763.3,1111.4L760.0,1112.1L757.4,1111.0L755.9,1112.6L754.7,1114.7L752.2,1117.9L748.9,1120.6L742.4,1122.4L736.9,1125.4L743.2,1134.2L735.7,1136.4L733.5,1140.8L724.8,1141.5L724.2,1147.0L724.7,1152.5L722.5,1157.2L723.6,1160.5L728.0,1161.7L728.4,1166.3L724.6,1172.2L724.0,1176.0L724.1,1179.9L726.5,1187.1L730.3,1193.1L725.0,1195.0L724.2,1201.2L721.4,1199.8L718.6,1198.0L715.0,1203.7L714.0,1210.5L711.8,1207.0L708.8,1203.3L707.7,1195.0L706.0,1194.0L704.1,1193.2L702.4,1187.5L700.0,1182.2L698.0,1181.8L696.0,1180.7L694.8,1176.3L692.8,1173.2L689.7,1173.0L685.0,1173.3L679.8,1177.1L673.6,1179.6L667.8,1178.5L663.9,1175.4L661.2,1171.1L662.4,1167.7L669.3,1164.5L670.3,1163.5L671.1,1161.5L671.7,1159.1L667.3,1157.7L663.8,1153.9L661.9,1154.6L660.0,1155.6L659.3,1146.1L664.2,1144.9L666.8,1141.2L664.4,1140.0L662.1,1138.4L665.8,1132.3L664.8,1130.6L663.5,1129.0L662.1,1125.0L660.4,1121.4L652.2,1117.3L651.9,1113.2L656.6,1113.0L661.3,1113.2L664.8,1109.3L666.0,1104.2L670.1,1100.4L674.7,1098.2L684.4,1096.1L690.1,1087.6L691.3,1082.6L693.6,1078.0L695.7,1076.2L697.3,1074.0L698.2,1072.1L697.8,1070.3L696.4,1065.7L697.7,1063.4L699.4,1061.2L698.5,1059.9L697.3,1058.5L696.8,1056.3L697.3,1054.0L695.4,1047.5L695.6,1042.9L698.9,1040.9L704.3,1039.3L711.2,1032.9L711.7,1024.5L706.1,1005.9L703.8,966.9L702.6,945.8L705.0,933.7L705.7,934.3L709.6,936.7L711.2,940.4L711.6,944.6L713.6,950.8L719.9,961.3L724.6,959.7L727.2,959.1L730.2,957.9L735.7,952.8L748.2,945.8L759.6,948.2L760.6,961.1L757.9,973.7L756.5,976.3L755.8,978.7L756.6,981.8L757.6,985.1L759.3,996.4L762.1,1002.4L765.9,1006.2L768.2,1005.7L771.3,1006.3L772.4,1008.6L774.2,1011.6L776.5,1016.2L777.4,1020.9"><title> </title></path><text class="state-label" x="0" y="0"></text>
+<path class="state-line" d="M645.7,831.1L647.9,833.3L651.5,837.3L651.4,841.8L652.8,843.4L654.9,844.2L656.6,843.1L656.7,841.5L659.8,840.0L662.7,840.8L666.8,841.7L670.5,843.9L662.9,852.0L660.3,864.2L659.6,870.1L657.2,880.5L656.3,882.4L655.8,884.2L648.4,885.9L646.7,893.0L650.1,908.7L649.7,913.7L652.2,917.3L658.9,918.8L665.4,916.1L670.5,911.5L672.7,914.5L676.6,917.0L677.7,912.4L678.3,907.8L692.0,908.8L705.2,906.3L705.0,910.7L706.9,916.5L707.5,921.4L705.0,933.7L702.6,945.8L703.8,966.9L695.7,966.0L690.5,966.8L687.7,971.6L686.0,973.0L684.2,974.0L681.1,970.2L676.9,972.3L666.3,972.2L658.2,978.9L650.9,980.0L641.3,972.1L637.6,970.6L634.0,972.8L632.4,976.8L633.3,986.3L627.8,992.3L618.4,991.8L602.2,981.5L596.9,974.3L597.0,971.6L598.5,969.7L599.0,966.5L598.3,963.3L597.0,960.6L595.4,958.0L592.9,952.8L593.5,947.4L597.1,944.1L598.1,941.9L598.0,939.5L598.7,936.5L598.9,933.4L594.2,928.8L592.7,920.9L592.0,912.2L590.7,910.4L589.8,909.7L589.7,905.3L588.0,900.9L585.4,896.6L583.6,892.6L581.7,892.0L579.4,890.7L578.8,886.2L580.0,882.0L585.4,878.0L594.0,874.8L598.5,869.3L602.6,869.5L605.7,871.5L609.5,868.9L611.4,865.8L613.2,864.5L614.8,863.5L614.7,861.7L614.1,860.5L617.4,857.1L619.8,853.4L619.8,848.6L621.2,844.5L623.8,844.5L625.7,844.9L627.2,843.9L632.2,838.7L635.5,835.7L640.3,833.3L645.7,831.1"><title> </title></path><text class="state-label" x="0" y="0"></text>
+<path class="state-line" d="M654.9,844.2L652.8,843.4L651.4,841.8L651.5,837.3L647.9,833.3L645.7,831.1L646.0,824.3L651.0,817.3L645.9,813.2L646.3,804.2L648.1,794.2L651.8,784.4L653.9,773.6L657.6,763.7L667.7,761.8L679.0,761.8L682.3,759.8L683.4,755.3L685.3,750.8L688.6,747.3L692.4,746.2L695.4,750.6L699.6,752.2L703.5,755.3L704.5,760.7L707.7,763.9L718.5,762.8L737.8,767.6L742.4,767.6L746.7,770.0L750.8,773.2L755.3,775.5L758.5,775.2L760.3,777.8L760.7,781.1L760.6,784.4L761.5,789.3L760.2,792.5L757.2,794.4L758.2,795.1L759.5,795.5L765.9,794.1L769.5,785.6L770.8,783.1L772.4,776.4L774.1,774.8L776.1,773.4L777.8,770.3L780.1,767.8L783.3,767.8L787.2,767.8L788.6,781.2L786.6,821.9L788.5,831.4L792.8,840.7L794.9,850.3L792.5,850.5L783.3,849.3L776.0,850.3L770.2,854.2L768.3,861.7L766.1,881.6L769.7,901.6L768.6,907.4L769.4,913.5L768.0,916.2L766.3,918.0L765.1,921.0L764.5,923.6L759.5,923.0L753.5,919.6L741.1,915.8L733.6,908.2L724.3,904.6L719.6,905.4L710.0,906.3L705.2,906.3L692.0,908.8L678.3,907.8L677.7,912.4L676.6,917.0L672.7,914.5L670.5,911.5L665.4,916.1L658.9,918.8L652.2,917.3L649.7,913.7L650.1,908.7L646.7,893.0L648.4,885.9L655.8,884.2L656.3,882.4L657.2,880.5L659.6,870.1L660.3,864.2L662.9,852.0L670.5,843.9L666.8,841.7L662.7,840.8L659.8,840.0L656.7,841.5L656.6,843.1L654.9,844.2"><title> </title></path><text class="state-label" x="0" y="0"></text>
+<path class="state-line" d="M560.2,1000.1L557.8,995.2L554.1,991.3L548.0,990.5L542.3,992.7L541.4,997.6L541.7,1002.9L540.9,1005.9L539.0,1008.4L536.3,1008.5L523.8,1011.3L517.8,1014.1L512.2,1018.2L506.9,1022.9L501.6,1025.9L497.2,1022.6L490.8,1015.3L489.3,1013.2L488.6,1011.0L486.3,1008.4L479.2,1009.7L472.9,1014.1L465.5,1016.3L458.4,1011.3L452.3,1011.6L442.5,1019.2L437.1,1021.3L436.5,1006.0L427.1,955.1L426.7,946.2L427.2,937.3L430.0,930.2L433.8,923.7L434.8,920.8L436.6,918.2L440.3,917.3L443.3,915.6L441.9,913.3L438.8,912.5L440.1,909.1L441.9,906.1L445.2,905.1L448.8,904.8L451.6,903.6L453.4,901.3L452.4,898.6L451.1,895.7L451.9,888.9L454.3,882.6L454.8,879.6L455.8,876.8L459.1,875.0L462.2,872.9L462.9,870.1L464.2,867.5L469.6,864.7L470.6,862.3L471.0,859.7L472.6,856.1L476.4,854.4L476.1,854.8L475.9,855.3L477.5,854.8L479.4,852.7L479.5,849.6L481.0,847.1L486.3,850.1L489.5,847.6L486.5,841.9L487.9,838.9L489.9,835.9L490.2,830.1L490.0,823.1L491.0,819.7L491.6,816.7L488.5,814.7L485.1,813.5L482.7,808.9L481.7,803.8L479.0,793.6L479.2,788.4L478.7,783.5L484.2,786.6L507.8,797.5L512.8,798.7L517.7,800.7L521.5,803.5L526.2,804.2L534.7,807.5L542.4,813.7L546.6,818.0L551.2,820.8L556.0,820.7L559.8,823.8L559.9,827.1L559.5,830.3L560.2,835.8L559.9,840.5L560.3,845.0L563.9,846.5L568.0,846.8L570.1,850.4L570.8,854.7L573.2,860.7L574.4,866.8L573.5,875.8L580.0,882.0L578.8,886.2L579.4,890.7L581.7,892.0L583.6,892.6L585.4,896.6L588.0,900.9L589.7,905.3L589.8,909.7L590.7,910.4L592.0,912.2L592.7,920.9L594.2,928.8L598.9,933.4L598.7,936.5L598.0,939.5L598.1,941.9L597.1,944.1L593.5,947.4L592.9,952.8L595.4,958.0L597.0,960.6L598.3,963.3L599.0,966.5L598.5,969.7L597.0,971.6L596.9,974.3L593.8,975.7L590.8,976.5L592.9,979.8L594.4,983.3L591.7,984.6L588.0,983.9L584.2,986.0L584.6,988.9L584.2,991.6L579.9,991.3L575.9,988.4L572.2,988.4L571.4,993.6L570.3,995.0L569.4,996.5L569.6,998.2L570.1,999.4L565.5,1000.7L560.2,1000.1"><title> </title></path><text class="state-label" x="0" y="0"></text>
+<path class="state-line" d="M688.6,747.3L685.3,750.8L683.4,755.3L682.3,759.8L679.0,761.8L667.7,761.8L657.6,763.7L653.9,773.6L651.8,784.4L648.1,794.2L646.3,804.2L645.9,813.2L651.0,817.3L646.0,824.3L645.7,831.1L640.3,833.3L635.5,835.7L632.2,838.7L627.2,843.9L625.7,844.9L623.8,844.5L621.2,844.5L619.8,848.6L619.8,853.4L617.4,857.1L614.1,860.5L614.7,861.7L614.8,863.5L613.2,864.5L611.4,865.8L609.5,868.9L605.7,871.5L602.6,869.5L598.5,869.3L594.0,874.8L585.4,878.0L580.0,882.0L573.5,875.8L574.4,866.8L573.2,860.7L570.8,854.7L570.1,850.4L568.0,846.8L563.9,846.5L560.3,845.0L559.9,840.5L560.2,835.8L559.5,830.3L559.9,827.1L559.8,823.8L556.0,820.7L551.2,820.8L546.6,818.0L542.4,813.7L534.7,807.5L526.2,804.2L521.5,803.5L517.7,800.7L512.8,798.7L507.8,797.5L484.2,786.6L478.7,783.5L475.9,779.8L472.1,776.8L466.9,777.0L462.4,773.5L458.1,775.5L452.7,775.5L451.2,770.9L444.9,744.9L441.1,737.6L443.9,731.2L448.2,729.3L449.4,726.9L449.8,725.1L457.7,718.6L462.4,708.7L461.0,698.1L463.1,699.1L465.5,699.4L466.1,675.5L464.1,660.4L475.5,665.0L488.0,665.1L512.8,658.6L512.9,667.0L515.5,674.3L519.4,675.6L523.1,677.3L524.8,680.5L525.7,684.0L528.4,689.5L533.8,692.4L536.5,693.1L539.0,693.3L542.9,686.2L547.4,684.2L552.2,673.1L562.2,660.0L570.0,656.5L574.7,659.0L579.0,662.1L587.2,662.0L594.0,656.8L600.4,651.0L606.0,644.5L609.1,639.7L612.7,635.3L618.7,630.5L616.6,623.8L611.9,617.8L605.3,615.4L604.8,609.8L623.8,609.1L631.2,603.9L637.9,602.0L644.9,600.7L652.1,597.7L659.6,597.9L666.1,601.6L677.2,609.4L681.1,613.7L683.2,616.5L685.6,618.3L682.6,625.0L678.3,631.4L678.5,642.5L683.2,652.9L685.1,658.3L681.2,667.5L681.4,672.8L683.6,675.3L686.3,677.9L687.3,684.1L694.1,694.1L697.7,702.7L700.0,705.6L702.9,707.9L704.7,711.9L702.5,715.7L698.9,718.0L695.8,721.2L694.7,724.3L694.1,727.5L688.6,747.3"><title> </title></path><text class="state-label" x="0" y="0"></text>
+<path class="state-line" d="M616.6,1155.9L602.5,1154.0L589.2,1151.0L582.9,1150.5L577.7,1146.4L578.6,1143.8L580.6,1141.9L578.8,1140.0L579.0,1135.8L581.9,1133.2L581.5,1129.8L579.6,1123.0L573.6,1118.6L566.2,1116.1L564.0,1108.7L565.8,1099.1L564.1,1097.4L562.7,1095.4L564.1,1093.5L566.1,1092.9L569.6,1089.7L571.9,1086.1L571.0,1085.9L570.7,1085.0L578.0,1085.7L589.5,1102.8L597.0,1107.3L602.5,1101.4L605.6,1092.7L602.5,1088.6L598.7,1085.0L594.2,1076.6L592.2,1075.8L590.1,1076.4L595.9,1071.8L605.2,1072.9L610.4,1071.8L617.8,1066.6L622.8,1066.5L627.2,1067.7L643.7,1048.1L648.9,1039.3L646.6,1029.6L645.8,1022.2L650.2,1026.2L653.8,1031.1L656.5,1032.0L658.7,1032.3L664.6,1041.6L674.0,1042.3L685.0,1040.7L695.6,1042.9L695.4,1047.5L697.3,1054.0L696.8,1056.3L697.3,1058.5L698.5,1059.9L699.4,1061.2L697.7,1063.4L696.4,1065.7L697.8,1070.3L698.2,1072.1L697.3,1074.0L695.7,1076.2L693.6,1078.0L691.3,1082.6L690.1,1087.6L684.4,1096.1L674.7,1098.2L670.1,1100.4L666.0,1104.2L664.8,1109.3L661.3,1113.2L656.6,1113.0L651.9,1113.2L652.2,1117.3L660.4,1121.4L662.1,1125.0L663.5,1129.0L664.8,1130.6L665.8,1132.3L662.1,1138.4L664.4,1140.0L666.8,1141.2L664.2,1144.9L659.3,1146.1L644.8,1153.7L636.8,1154.8L628.3,1154.5L622.0,1155.0L616.6,1155.9"><title> </title></path><text class="state-label" x="0" y="0"></text>
+<path class="state-line" d="M644.9,600.7L637.9,602.0L631.2,603.9L623.8,609.1L604.8,609.8L605.3,615.4L611.9,617.8L616.6,623.8L618.7,630.5L612.7,635.3L609.1,639.7L606.0,644.5L600.4,651.0L594.0,656.8L587.2,662.0L579.0,662.1L574.7,659.0L570.0,656.5L562.2,660.0L552.2,673.1L547.4,684.2L542.9,686.2L539.0,693.3L536.5,693.1L533.8,692.4L528.4,689.5L525.7,684.0L524.8,680.5L523.1,677.3L519.4,675.6L515.5,674.3L512.9,667.0L512.8,658.6L503.2,646.1L497.1,641.5L497.2,638.1L498.2,634.3L504.8,633.6L508.6,625.0L515.7,621.0L524.9,622.1L539.3,620.3L553.0,615.2L554.3,606.2L550.4,596.3L546.5,590.0L539.6,586.7L551.4,579.3L558.6,573.5L563.1,566.6L562.8,562.2L561.9,557.8L561.9,555.5L561.7,553.4L557.9,552.8L555.9,550.1L556.6,546.3L561.2,545.9L566.1,546.2L574.9,546.0L581.3,550.0L585.2,555.9L591.5,553.1L595.8,549.2L598.4,548.0L600.8,546.6L601.3,545.2L601.8,544.0L610.1,543.8L618.0,546.8L619.0,555.1L625.8,555.8L628.8,561.0L626.3,564.7L625.9,568.2L629.9,567.2L633.6,564.7L641.6,565.9L649.7,570.9L652.8,575.0L648.1,592.5L646.0,596.2L644.9,600.7"><title> </title></path><text class="state-label" x="0" y="0"></text>
+<path class="state-line" d="M570.7,1085.0L570.8,1079.9L572.7,1076.0L570.8,1072.7L566.9,1063.4L569.9,1060.7L578.8,1059.3L582.8,1054.9L585.6,1054.7L588.4,1054.1L590.4,1050.9L591.8,1047.5L588.8,1043.8L585.1,1040.1L585.1,1036.3L585.7,1031.7L582.6,1027.9L576.1,1024.3L573.9,1022.8L574.4,1017.8L563.3,1008.1L560.2,1000.1L565.5,1000.7L570.1,999.4L569.6,998.2L569.4,996.5L570.3,995.0L571.4,993.6L572.2,988.4L575.9,988.4L579.9,991.3L584.2,991.6L584.6,988.9L584.2,986.0L588.0,983.9L591.7,984.6L594.4,983.3L592.9,979.8L590.8,976.5L593.8,975.7L596.9,974.3L602.2,981.5L618.4,991.8L627.8,992.3L633.3,986.3L632.4,976.8L634.0,972.8L637.6,970.6L641.3,972.1L650.9,980.0L658.2,978.9L666.3,972.2L676.9,972.3L681.1,970.2L684.2,974.0L686.0,973.0L687.7,971.6L690.5,966.8L695.7,966.0L703.8,966.9L706.1,1005.9L711.7,1024.5L711.2,1032.9L704.3,1039.3L698.9,1040.9L695.6,1042.9L685.0,1040.7L674.0,1042.3L664.6,1041.6L658.7,1032.3L656.5,1032.0L653.8,1031.1L650.2,1026.2L645.8,1022.2L646.6,1029.6L648.9,1039.3L643.7,1048.1L627.2,1067.7L622.8,1066.5L617.8,1066.6L610.4,1071.8L605.2,1072.9L595.9,1071.8L590.1,1076.4L592.2,1075.8L594.2,1076.6L598.7,1085.0L602.5,1088.6L605.6,1092.7L602.5,1101.4L597.0,1107.3L589.5,1102.8L578.0,1085.7L570.7,1085.0"><title> </title></path><text class="state-label" x="0" y="0"></text></g>
+  <g class="places-layer"><circle class="place-dot" cx="767.4" cy="687.4" r="2.5"/><text class="place-label" x="773.4" y="690.4">Trincomalee</text>
+<circle class="place-dot" cx="408.0" cy="825.5" r="2.5"/><text class="place-label" x="414.0" y="828.5">Puttalan</text>
+<circle class="place-dot" cx="550.8" cy="1171.6" r="2.5"/><text class="place-label" x="556.8" y="1174.6">Ratnapura</text>
+<circle class="place-dot" cx="887.1" cy="907.1" r="2.5"/><text class="place-label" x="893.1" y="910.1">Batticaloa</text>
+<circle class="place-dot" cx="555.0" cy="472.8" r="2.5"/><text class="place-label" x="561.0" y="475.8">Kilinochchi</text>
+<circle class="place-dot" cx="590.9" cy="1363.6" r="2.5"/><text class="place-label" x="596.9" y="1366.6">Matara</text>
+<circle class="place-dot" cx="720.9" cy="1096.6" r="2.5"/><text class="place-label" x="726.9" y="1099.6">Badulla</text>
+<circle class="place-dot" cx="421.1" cy="1148.8" r="2.5"/><text class="place-label" x="427.1" y="1151.8">Moratuwa</text>
+<circle class="place-dot" cx="513.2" cy="1342.6" r="2.5"/><text class="place-label" x="519.2" y="1345.6">Galle</text>
+<circle class="place-dot" cx="550.5" cy="743.9" r="2.5"/><text class="place-label" x="556.5" y="746.9">Anuradhapura</text>
+<circle class="place-dot" cx="454.6" cy="401.8" r="2.5"/><text class="place-label" x="460.6" y="404.8">Jaffna</text>
+<circle class="place-dot" cx="623.6" cy="1020.1" r="2.5"/><text class="place-label" x="629.6" y="1023.1">Kandy</text>
+<circle class="place-dot" cx="439.1" cy="1118.0" r="2.5"/><text class="place-label" x="445.1" y="1121.0">Sri Jayawardenepura Kotte</text>
+<circle class="place-dot" cx="415.5" cy="1109.7" r="2.5"/><text class="place-label" x="421.5" y="1112.7">Colombo</text></g>
+  <g class="sea-layer"><text class="sea-label" x="286.8" y="691.7">Gulf of Mannar</text>
+<text class="sea-label" x="415.0" y="434.0">Palk Strait</text>
+<text class="sea-label" x="887.2" y="988.9">Bay of Bengal</text>
+<text class="sea-label" x="374.0" y="1608.2">Indian Ocean</text></g>
+  <g id="radarSweep" data-cx="650.0" data-cy="866.1" transform="rotate(0 650.0 866.1)"><path d="M 650.0 866.1 L 568.4 403.3 A 470 470 0 0 1 899.1 467.5 Z" fill="url(#sweepGrad)"/></g>
+  <g class="markers" id="markerLayer"></g>
+</svg><div class="map-tip" id="mapTip"></div></div>
+    <div class="layers-panel">
+      <div class="layers-hd">LAYERS</div>
+      <label class="layer-toggle"><input type="checkbox" class="layer-cb" data-layer="capital" checked/><i style="background:#c9a35c"></i>Capital, principal town or district centre</label>
+<label class="layer-toggle"><input type="checkbox" class="layer-cb" data-layer="foreign_base" checked/><i style="background:#3b82f6"></i>Foreign-operated or foreign-linked strategic facility (Chinese-linked items)</label>
+<label class="layer-toggle"><input type="checkbox" class="layer-cb" data-layer="navy_base" checked/><i style="background:#f97316"></i>Navy base or naval command headquarters</label>
+<label class="layer-toggle"><input type="checkbox" class="layer-cb" data-layer="submarine_base" checked/><i style="background:#fb923c"></i>Submarine call (reported)</label>
+<label class="layer-toggle"><input type="checkbox" class="layer-cb" data-layer="radar" checked/><i style="background:#f472b6"></i>Air-surveillance or air-defence radar squadron</label>
+<label class="layer-toggle"><input type="checkbox" class="layer-cb" data-layer="defense_industry" checked/><i style="background:#84cc16"></i>Shipyard</label>
+<label class="layer-toggle"><input type="checkbox" class="layer-cb" data-layer="cantonment" checked/><i style="background:#94a3b8"></i>Army headquarters, division or security headquarters</label>
+<label class="layer-toggle"><input type="checkbox" class="layer-cb" data-layer="cyber_hub" checked/><i style="background:#e879f9"></i>Cyber, CERT or data-centre site</label>
+<label class="layer-toggle"><input type="checkbox" class="layer-cb" data-layer="pipeline" checked/><i style="background:#a78bfa"></i>Fuel, energy, refinery, pipeline or subsea cable</label>
+<label class="layer-toggle"><input type="checkbox" class="layer-cb" data-layer="chokepoint" checked/><i style="background:#22d3ee"></i>Chokepoint or sea lane</label>
+<label class="layer-toggle"><input type="checkbox" class="layer-cb" data-layer="hazard" checked/><i style="background:#fbbf24"></i>Live earthquake (USGS)</label>
+<label class="layer-toggle"><input type="checkbox" class="layer-cb" data-layer="custom" checked/><i style="background:#ffffff"></i>Your plotted marker</label>
+      <div class="layers-hd" style="margin-top:8px;">INFRASTRUCTURE</div>
+      <label class="layer-toggle"><input type="checkbox" class="layer-cb" data-layer="air_base" checked/><i style="background:#c4b5fd"></i>Air base or air station</label>
+<label class="layer-toggle"><input type="checkbox" class="layer-cb" data-layer="airport" checked/><i style="background:#38bdf8"></i>Civil airport (large and medium)</label>
+<label class="layer-toggle"><input type="checkbox" class="layer-cb" data-layer="seaport" checked/><i style="background:#22c55e"></i>Seaport</label>
+      <div class="infra-note" id="infraNote">&hellip;</div>
+      <div class="infra-note"><b>Map basis:</b> Lambert azimuthal equal-area projection centred on the island, drawn from Natural Earth boundaries, province lines, rivers and sea labels. The frame is Sri Lanka plus 150 km on every side (about 78.3 to 83.3 degrees east and 4.6 to 11.2 degrees north). Sri Lanka is shaded. Neighbouring land at the edge of the frame appears as a plain outline only; nothing about any neighbouring state is plotted, and no foreign deployment is described beyond the Chinese-linked facilities and visits listed. Nuclear power plants, nuclear storage, missile bases and space-launch sites are absent because none exists in Sri Lanka in the sources reviewed; the candidate sites for a first nuclear plant are not published. Most positions are approximate; each tooltip gives its source and whether it is verified in this build. Reported events and claims are attributed. Events reflect reports up to 10 October 2026.</div>
+    </div>
+  </div>
+</div>
+  <div class="offline-banner" id="offlineBanner"></div>
+  <div class="panel-row"><div class="panel" data-cat="geo">
+      <div class="panel-hd"><span class="panel-dot" style="background:var(--green);color:var(--green)"></span>
+      <span class="panel-title">Geopolitical & Diplomatic</span><span class="panel-count" id="count-geo">&hellip;</span></div>
+      <div class="panel-items" id="items-geo"><div class="skel" style="height:60px;"></div></div>
+    </div><div class="panel" data-cat="milops">
+      <div class="panel-hd"><span class="panel-dot" style="background:var(--amber);color:var(--amber)"></span>
+      <span class="panel-title">Military Operations & Force Posture</span><span class="panel-count" id="count-milops">&hellip;</span></div>
+      <div class="panel-items" id="items-milops"><div class="skel" style="height:60px;"></div></div>
+    </div><div class="panel" data-cat="arms">
+      <div class="panel-hd"><span class="panel-dot" style="background:var(--magenta);color:var(--magenta)"></span>
+      <span class="panel-title">Strategic Arms & Nuclear Program</span><span class="panel-count" id="count-arms">&hellip;</span></div>
+      <div class="panel-items" id="items-arms"><div class="skel" style="height:60px;"></div></div>
+    </div></div>
+<div class="panel-row"><div class="panel" data-cat="naval">
+      <div class="panel-hd"><span class="panel-dot" style="background:var(--cyan-h);color:var(--cyan-h)"></span>
+      <span class="panel-title">Naval & Maritime Security</span><span class="panel-count" id="count-naval">&hellip;</span></div>
+      <div class="panel-items" id="items-naval"><div class="skel" style="height:60px;"></div></div>
+    </div><div class="panel" data-cat="scs">
+      <div class="panel-hd"><span class="panel-dot" style="background:var(--cyan-h);color:var(--cyan-h)"></span>
+      <span class="panel-title">Maritime Chokepoints & Sea Lanes</span><span class="panel-count" id="count-scs">&hellip;</span></div>
+      <div class="panel-items" id="items-scs"><div class="skel" style="height:60px;"></div></div>
+    </div><div class="panel" data-cat="air">
+      <div class="panel-hd"><span class="panel-dot" style="background:var(--violet);color:var(--violet)"></span>
+      <span class="panel-title">Air Force & Aviation</span><span class="panel-count" id="count-air">&hellip;</span></div>
+      <div class="panel-items" id="items-air"><div class="skel" style="height:60px;"></div></div>
+    </div></div>
+<div class="panel-row"><div class="panel" data-cat="space">
+      <div class="panel-hd"><span class="panel-dot" style="background:var(--cyan-h);color:var(--cyan-h)"></span>
+      <span class="panel-title">Space Tech & Aerospace</span><span class="panel-count" id="count-space">&hellip;</span></div>
+      <div class="panel-items" id="items-space"><div class="skel" style="height:60px;"></div></div>
+    </div><div class="panel" data-cat="tech">
+      <div class="panel-hd"><span class="panel-dot" style="background:var(--gold);color:var(--gold)"></span>
+      <span class="panel-title">Critical Tech & AI Governance</span><span class="panel-count" id="count-tech">&hellip;</span></div>
+      <div class="panel-items" id="items-tech"><div class="skel" style="height:60px;"></div></div>
+    </div><div class="panel" data-cat="cyber">
+      <div class="panel-hd"><span class="panel-dot" style="background:var(--red);color:var(--red)"></span>
+      <span class="panel-title">Cyber Espionage & APTs</span><span class="panel-count" id="count-cyber">&hellip;</span></div>
+      <div class="panel-items" id="items-cyber"><div class="skel" style="height:60px;"></div></div>
+    </div></div>
+<div class="panel-row" style="grid-template-columns:1fr;"><div class="panel darkweb-panel" data-cat="darkweb" style="grid-column:1/-1;">
+  <div class="panel-hd"><span class="panel-dot" style="background:var(--red);color:var(--red)"></span>
+  <span class="panel-title">Darkweb &amp; Threat Intel</span><span class="panel-count" id="count-darkweb">&hellip;</span>
+  <select id="darkwebFilter" class="dw-select"><option value="all">All claims</option><option value="region">Regional victims only</option></select></div>
+  <div class="dw-status" id="darkwebStatus"></div>
+  <div class="panel-items" id="items-darkweb" style="max-height:460px;overflow-y:auto;"><div class="skel" style="height:60px;"></div></div>
+  <div class="infra-note"><b>Sources:</b> Ransomware.live (leak-site claims - group claims, not verified facts); Telegram threat-intel channels; and dark-web RSS sources reached through Tor that you verify yourself (data/onion_sources.json).
+  <br/><b>To read onion sources</b> you need Tor on this PC: open <b>Tor Browser</b> (it listens on port 9150) or install and start the <b>Tor service</b> (port 9050). Keep it running, then press Refresh. Nothing is needed for the clear-web and Telegram sources. This dashboard never opens .onion pages in a browser and does not search or crawl the dark web.</div>
+</div></div>
+<div class="panel-row"><div class="panel" data-cat="econ">
+      <div class="panel-hd"><span class="panel-dot" style="background:var(--cyan-h);color:var(--cyan-h)"></span>
+      <span class="panel-title">Economic & Trade (energy, shipping)</span><span class="panel-count" id="count-econ">&hellip;</span></div>
+      <div class="panel-items" id="items-econ"><div class="skel" style="height:60px;"></div></div>
+    </div><div class="panel" data-cat="mss">
+      <div class="panel-hd"><span class="panel-dot" style="background:var(--amber);color:var(--amber)"></span>
+      <span class="panel-title">Internal Security & Intelligence Operations</span><span class="panel-count" id="count-mss">&hellip;</span></div>
+      <div class="panel-items" id="items-mss"><div class="skel" style="height:60px;"></div></div>
+    </div><div class="panel" data-cat="social">
+      <div class="panel-hd"><span class="panel-dot" style="background:var(--gold);color:var(--gold)"></span>
+      <span class="panel-title">Social Pulse & Public Sentiment</span><span class="panel-count" id="count-social">&hellip;</span></div>
+      <div class="panel-items" id="items-social"><div class="skel" style="height:60px;"></div></div>
+    </div></div>
+<div class="panel-row" style="grid-template-columns:repeat(2,1fr);"><div class="panel" data-cat="wellbeing">
+      <div class="panel-hd"><span class="panel-dot" style="background:var(--magenta);color:var(--magenta)"></span>
+      <span class="panel-title">Happiness & Wellbeing Indices</span><span class="panel-count" id="count-wellbeing">&hellip;</span></div>
+      <div style="font-size:12px;color:var(--text-dim);line-height:1.6;margin-bottom:8px;">
+  <b style="color:var(--text);">World Happiness Report 2026:</b> Sri Lanka's rank was not verified in this build. Check the report directly.</div>
+  <div class="meta" style="font-size:10.5px;color:var(--text-faint);">Annual report - static reference, not a live feed.</div><div class="panel-items" id="items-wellbeing"><div class="skel" style="height:60px;"></div></div>
+    </div><div class="panel" data-cat="hazard">
+      <div class="panel-hd"><span class="panel-dot" style="background:var(--violet);color:var(--violet)"></span>
+      <span class="panel-title">Natural Hazards & Environmental Risks</span><span class="panel-count" id="count-hazard">&hellip;</span></div>
+      <div class="panel-items" id="items-hazard"><div class="skel" style="height:60px;"></div></div>
+    </div></div>
+<div class="panel-row" style="grid-template-columns:1fr;"><div class="panel">
+  <div class="panel-hd"><span class="panel-dot" style="background:var(--text-faint);color:var(--text-faint)"></span>
+  <span class="panel-title">Connector Status</span></div>
+  <div class="connector-strip" id="connectorStrip"><div class="skel" style="height:20px;width:100%;"></div></div>
+  <div class="item" style="margin-top:12px;border-left-color:var(--gold-soft);">
+    <div class="txt" id="methodNote">Loading&hellip;</div>
+  </div>
+</div></div>
+</div>
+    <aside class="ticker-panel">
+  <div class="ticker-hd"><span class="live-dot"></span><span class="panel-title">Latest News (running)</span>
+    <span class="panel-count" id="count-ticker">&hellip;</span></div>
+  <div class="ticker-viewport" id="tickerViewport"><div class="ticker-track" id="tickerTrack">
+    <div class="skel" style="height:60px;margin:10px;"></div></div></div>
+  <div class="ticker-ftr">Hover to pause &middot; moves bottom&rarr;top &middot; unlocated news only (located news is on the map)</div>
+</aside>
+  </div>
+  <div class="dash-footer">
+  <div><span class="brandline">Sri Lanka DASHBOARD</span> &middot; By Aryan &middot; @EPureNest</div>
+  <div id="footerNote">Loading&hellip;</div>
+</div>
+</div>
+<script src="/static/dashboard.js"></script>
+</body>
+</html>
